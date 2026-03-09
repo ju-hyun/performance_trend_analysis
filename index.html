@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>성능 트렌드 분석</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="24" height="24" rx="4" fill="#8b5cf6" />
+          <path d="M12 6V18M12 6L8 10M12 6L16 10" stroke="white" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>대시보드</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20v-6M6 20V10M18 20V4"></path>
+          </svg>
+          <span>사용자 정의</span>
+        </a>
+        <a href="#" class="nav-item">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4"></path>
+            <path d="M12 8h.01"></path>
+          </svg>
+          <span>분석</span>
+        </a>
+        <a href="#" class="nav-item active">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"></path>
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+          </svg>
+          <span>통계</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="breadcrumb">
+          <span>성능트렌드 분석</span>
+        </div>
+        <div class="header-actions">
+          <!-- Header actions (icons) can go here -->
+        </div>
+      </header>
+
+      <!-- Filters Section -->
+      <section class="filters-card">
+        <div class="filter-group">
+          <label>도메인</label>
+          <select id="domainSelect" class="form-select">
+            <input type="hidden" id="token" value="d5HJuONXNZf">
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>인스턴스 (선택)</label>
+          <select id="instanceSelect" class="form-select">
+            <option value="">전체 (도메인 단위조회)</option>
+          </select>
+        </div>
+        <div class="filter-group custom-date-group">
+          <label>조회 기간</label>
+          <div class="date-picker-wrapper">
+            <input type="text" id="dateRange" class="form-input" placeholder="시작일 - 종료일 선택">
+            <svg class="calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button id="searchBtn" class="btn btn-primary">조회</button>
+        </div>
+      </section>
+
+      <!-- Summary Cards -->
+      <section class="summary-cards">
+        <div class="summary-card">
+          <h3>기간 피크일</h3>
+          <div class="summary-value" id="peakDate">-</div>
+          <div class="summary-label">최대 호출수 기준</div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 응답시간</h3>
+          <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
+          <div class="summary-label">조회 기간 평균</div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 TPS</h3>
+          <div class="summary-value" id="avgTps">0</div>
+          <div class="summary-label">조회 기간 평균</div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 동시사용자</h3>
+          <div class="summary-value" id="avgConcurrentUsers">0</div>
+          <div class="summary-label">조회 기간 평균</div>
+        </div>
+      </section>
+
+      <!-- Charts Grid -->
+      <h2 class="section-title">1. 도메인 성능 데이터</h2>
+      <section class="charts-grid">
+        <!-- Response Time Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>응답시간 (ms)</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="responseTimeChart"></canvas>
+          </div>
+          <div class="chart-footer">
+            <span class="footer-label">평균 응답시간</span>
+            <div class="footer-stats">
+              <strong id="footerAvgResponse">0</strong>
+              <span class="trend down">전주비 -% ↓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TPS Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>TPS</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="tpsChart"></canvas>
+          </div>
+          <div class="chart-footer">
+            <span class="footer-label">평균 TPS</span>
+            <div class="footer-stats">
+              <strong id="footerAvgTps">0.00</strong>
+              <span class="trend up">전주비 -% ↑</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Concurrent Users Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>동시사용자수</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="concurrentUsersChart"></canvas>
+          </div>
+          <div class="chart-footer">
+            <span class="footer-label">평균 동시사용자</span>
+            <div class="footer-stats">
+              <strong id="footerAvgUsers">0</strong>
+              <span class="trend up">전주비 -% ↑</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+</body>
+
+</html>
