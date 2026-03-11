@@ -470,6 +470,7 @@ function calculateMonthlyAverages(data, label) {
   // Group data by month, but ONLY up to today for the current month/future
   data.forEach(item => {
     if (item.time > todayStr) return; // Future data (zeros) should not be averaged
+    if (item.value === 0 || item.value === null || item.value === undefined) return; // Exclude 0 or missing values
 
     const lbl = parseDateString(item.time);
     const month = lbl.split('/')[0];
@@ -481,7 +482,10 @@ function calculateMonthlyAverages(data, label) {
   const monthsInOrder = [];
   let lastM = null;
   data.forEach(item => {
-    const m = parseDateString(item.time).split('/')[0];
+    const lbl = parseDateString(item.time);
+    if (typeof lbl !== 'string') return;
+    
+    const m = lbl.split('/')[0];
     if (m !== lastM) {
       monthsInOrder.push(m);
       lastM = m;
@@ -490,7 +494,11 @@ function calculateMonthlyAverages(data, label) {
 
   // Calculate avg per month and set up prev month references
   monthsInOrder.forEach((m, idx) => {
-    if (!monthData[m]) return;
+    if (!monthData[m] || monthData[m].length === 0) {
+      // If no valid data for this month, skip or set zero
+      monthlyAveragesCache[m] = { avg: 0, prevAvgMonth: idx > 0 ? monthsInOrder[idx - 1] : null };
+      return;
+    }
     
     const arr = monthData[m];
     const avg = arr.reduce((acc, v) => acc + v, 0) / arr.length;
@@ -512,11 +520,17 @@ function calculateMonthlyAverages(data, label) {
 
       if (isLastMonth) {
         // Like-for-like comparison: 
-        // Compare current month's count of days with the same count from the start of the previous month.
-        const currentMonthCount = monthData[m].length;
-        const prevMonthData = monthData[d.prevAvgMonth];
-        const prevMonthSlice = prevMonthData.slice(0, currentMonthCount);
-        prevAvg = prevMonthSlice.reduce((acc, v) => acc + v, 0) / (prevMonthSlice.length || 1);
+        // Compare current month's count of valid days with the same count from the start of the previous month.
+        const currentMonthData = monthData[m] || [];
+        const currentMonthCount = currentMonthData.length;
+        const prevMonthData = monthData[d.prevAvgMonth] || [];
+        
+        if (currentMonthCount > 0 && prevMonthData.length > 0) {
+          const prevMonthSlice = prevMonthData.slice(0, currentMonthCount);
+          prevAvg = prevMonthSlice.reduce((acc, v) => acc + v, 0) / (prevMonthSlice.length || 1);
+        } else {
+          prevAvg = monthlyAveragesCache[d.prevAvgMonth].avg;
+        }
       } else {
         prevAvg = monthlyAveragesCache[d.prevAvgMonth].avg;
       }
