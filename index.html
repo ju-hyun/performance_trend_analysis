@@ -90,18 +90,13 @@
             <option value="">전체 (도메인 단위조회)</option>
           </select>
         </div>
-        <div class="filter-group custom-date-group">
-          <label>조회 기간</label>
-          <div class="date-picker-wrapper">
-            <input type="text" id="dateRange" class="form-input" placeholder="시작일 - 종료일 선택">
-            <svg class="calendar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
+        <div class="filter-group">
+          <label>메트릭스</label>
+          <select id="metricsSelect" class="form-select">
+            <option value="service_time">응답시간</option>
+            <option value="service_rate">TPS</option>
+            <option value="concurrent_user">동시사용자수</option>
+          </select>
         </div>
         <div class="filter-actions">
           <button id="searchBtn" class="btn btn-primary">조회</button>
@@ -133,55 +128,31 @@
       </section>
 
       <!-- Charts Grid -->
-      <h2 class="section-title">1. 도메인 성능 데이터</h2>
+
       <section class="charts-grid">
-        <!-- Response Time Chart -->
-        <div class="chart-card">
+        <div class="chart-card single-chart-card">
           <div class="chart-header">
-            <h3>응답시간 (ms)</h3>
-          </div>
-          <div class="chart-container">
-            <canvas id="responseTimeChart"></canvas>
-          </div>
-          <div class="chart-footer">
-            <span class="footer-label">평균 응답시간</span>
-            <div class="footer-stats">
-              <strong id="footerAvgResponse">0</strong>
-              <span class="trend down">전주비 -% ↓</span>
+            <h3 id="chartTitle">응답시간</h3>
+            <div class="chart-type-toggle">
+              <button class="type-btn active" data-type="line">라인</button>
+              <button class="type-btn" data-type="bar">바</button>
             </div>
           </div>
-        </div>
-
-        <!-- TPS Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>TPS</h3>
-          </div>
           <div class="chart-container">
-            <canvas id="tpsChart"></canvas>
+            <canvas id="mainChart"></canvas>
           </div>
-          <div class="chart-footer">
-            <span class="footer-label">평균 TPS</span>
-            <div class="footer-stats">
-              <strong id="footerAvgTps">0.00</strong>
-              <span class="trend up">전주비 -% ↑</span>
+          <div class="chart-stats-container" id="chartStats">
+            <div class="stats-row stats-avg-row">
+              <div class="stats-label">평균</div>
+              <div class="stats-values-wrapper" id="statsAvgValues">
+                <!-- Moonthly Avg Values will be injected here -->
+              </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Concurrent Users Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>동시사용자수</h3>
-          </div>
-          <div class="chart-container">
-            <canvas id="concurrentUsersChart"></canvas>
-          </div>
-          <div class="chart-footer">
-            <span class="footer-label">평균 동시사용자</span>
-            <div class="footer-stats">
-              <strong id="footerAvgUsers">0</strong>
-              <span class="trend up">전주비 -% ↑</span>
+            <div class="stats-row stats-rate-row">
+              <div class="stats-label">전월비</div>
+              <div class="stats-values-wrapper" id="statsRateValues">
+                <!-- Monthly Rate Values will be injected here -->
+              </div>
             </div>
           </div>
         </div>

@@ -288,9 +288,48 @@ body {
   overflow: hidden;
 }
 
+.single-chart-card {
+  grid-column: 1 / -1;
+}
+
 .chart-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-header h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-type-toggle {
+  display: flex;
+  background-color: var(--sidebar-active);
+  border-radius: 6px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+}
+
+.type-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.type-btn.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .chart-header h3 {
@@ -303,8 +342,61 @@ body {
   padding: 1.25rem;
   flex: 1;
   position: relative;
-  height: 250px;
+  height: 380px;
   width: 100%;
+}
+
+.chart-stats-container {
+  background-color: #f1f5f9;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  padding-left: 1.25rem;
+  height: 24px;
+}
+
+.stats-label {
+  width: 60px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.stats-values-wrapper {
+  flex: 1;
+  display: flex;
+  position: relative;
+  height: 100%;
+}
+
+.stat-item {
+  position: absolute;
+  top: 50%;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  transform: translate(-50%, -50%); /* Center based on left position and height */
+}
+
+.stat-item.rate-up {
+  color: #ef4444;
+}
+
+.stat-item.rate-down {
+  color: #3b82f6;
+}
+
+.stat-item.rate-none {
+  color: #94a3b8;
 }
 
 .chart-footer {
@@ -349,7 +441,10 @@ body {
 /* Loading overlay */
 .loading-overlay {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(255, 255, 255, 0.7);
   display: flex;
   justify-content: center;
@@ -368,7 +463,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsiveness */
