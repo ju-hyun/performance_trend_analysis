@@ -485,3 +485,147 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Heatmaps */
+.heatmaps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.heatmap-card {
+  min-height: 450px;
+}
+
+.heatmap-container {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  min-height: 350px;
+}
+
+.heatmap-placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.heatmap-legend {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.good { background-color: #22c55e; }
+.warning { background-color: #facc15; }
+.danger { background-color: #ef4444; }
+
+.heatmap-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.heatmap-table th {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 4px;
+  text-align: center;
+}
+
+.heatmap-table td {
+  height: 24px;
+  min-width: 15px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.heatmap-table td:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.cell-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: right;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+
+.heatmap-footer {
+  padding: 0.5rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  background-color: #fafafa;
+}
+
+.axis-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Overall Heatmap Specifics */
+.overall-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  grid-template-rows: repeat(20, 1fr);
+  width: 100%;
+  height: 300px;
+  gap: 1px;
+}
+
+.overall-cell {
+  background-color: rgba(34, 197, 94, 0.05);
+  border-radius: 1px;
+}
+
+/* Tooltip */
+.heatmap-tooltip {
+  position: absolute;
+  background: rgba(30, 41, 59, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .heatmaps-grid {
+    grid-template-columns: 1fr;
+  }
+}

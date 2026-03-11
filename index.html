@@ -40,6 +40,13 @@
             <option value="concurrent_user">동시사용자수</option>
           </select>
         </div>
+        <div class="filter-group custom-date-group">
+          <label>조회 기간</label>
+          <div class="date-picker-wrapper">
+            <input type="text" id="dateRange" class="form-input" placeholder="날짜 선택">
+            <span class="calendar-icon">📅</span>
+          </div>
+        </div>
         <div class="filter-actions">
           <button id="searchBtn" class="btn btn-primary">조회</button>
         </div>
@@ -91,6 +98,46 @@
               <div class="stats-label">전월비</div>
               <div class="stats-values-wrapper" id="statsRateValues"></div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Heatmaps Section -->
+      <section class="heatmaps-grid">
+        <div class="chart-card heatmap-card">
+          <div class="chart-header">
+            <h3>데이터 분포 (Overall)</h3>
+            <div class="heatmap-legend">
+              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 0.1)"></span>낮음</span>
+              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 1)"></span>높음</span>
+            </div>
+          </div>
+          <div class="heatmap-container" id="overallHeatmap">
+            <!-- Overall Heatmap Content -->
+            <div class="heatmap-placeholder">데이터 조회 후 표시됩니다.</div>
+          </div>
+          <div class="heatmap-footer">
+            <span class="axis-label x-axis-label">응답시간 (ms)</span>
+            <span class="axis-label y-axis-label">호출수 (count)</span>
+          </div>
+        </div>
+
+        <div class="chart-card heatmap-card">
+          <div class="chart-header">
+            <h3>요일 x 시간대별 응답시간</h3>
+            <div class="heatmap-legend">
+              <span class="legend-item"><span class="status-box good"></span>양호</span>
+              <span class="legend-item"><span class="status-box warning"></span>주의</span>
+              <span class="legend-item"><span class="status-box danger"></span>나쁨</span>
+            </div>
+          </div>
+          <div class="heatmap-container" id="dayHourHeatmap">
+            <!-- Day x Hour Heatmap Content -->
+            <div class="heatmap-placeholder">데이터 조회 후 표시됩니다.</div>
+          </div>
+          <div class="heatmap-footer">
+            <span class="axis-label x-axis-label">시간대 (Hour)</span>
+            <span class="axis-label y-axis-label">요일 (Day)</span>
           </div>
         </div>
       </section>

@@ -20,7 +20,10 @@ let currentMetricData = [];
 const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
 const metricsSelect = document.getElementById('metricsSelect');
+const dateRangeInput = document.getElementById('dateRange');
 const searchBtn = document.getElementById('searchBtn');
+
+let datePicker = null;
 
 // Configure Chart.js global defaults
 Chart.defaults.font.family = "'Inter', sans-serif";
@@ -31,6 +34,23 @@ Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 4;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize Flatpickr
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
+  datePicker = flatpickr(dateRangeInput, {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    defaultDate: [thirtyDaysAgo, today],
+    locale: "ko",
+    onChange: function(selectedDates) {
+      if (selectedDates.length === 2) {
+        // loadData(); // Auto search on date change
+      }
+    }
+  });
+
   // Load domains first
   await loadDomains();
 
@@ -156,7 +176,7 @@ async function loadData() {
     const today = new Date();
     const fetchPromises = [];
 
-    // 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
+    // Main Chart: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
     for (let i = 11; i >= 0; i--) {
       const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 0);
@@ -164,7 +184,7 @@ async function loadData() {
         fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, metrics)
           .catch(err => {
             console.warn(`Failed to fetch partially for ${formatDateParam(monthStart)}`, err);
-            return []; // 부분 실패 시 빈 배열 처리로 무시
+            return [];
           })
       );
     }
@@ -176,7 +196,6 @@ async function loadData() {
     results.forEach(res => { metricData.push(...res); });
     metricData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-    // 중복된 지표 시간 제거
     const uniqueData = [];
     const timeSet = new Set();
     metricData.forEach(item => {
@@ -186,7 +205,7 @@ async function loadData() {
       }
     });
 
-    currentMetricData = uniqueData; // Save for toggle
+    currentMetricData = uniqueData;
 
     // Update UI Elements for Chart
     document.getElementById('chartTitle').textContent = metricsName;
@@ -198,6 +217,38 @@ async function loadData() {
 
     // Update Summary Cards
     updateSummaryCardsPartial(metrics, currentMetricData);
+
+    // Heatmaps Data Fetching (Selected Range)
+    let startDate, endDate;
+    if (datePicker && datePicker.selectedDates.length === 2) {
+      startDate = datePicker.selectedDates[0];
+      endDate = datePicker.selectedDates[1];
+    } else {
+      endDate = new Date();
+      startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
+    }
+
+    // Heatmaps use 60-minute interval
+    const heatmapStartTime = formatDateParam(startDate);
+    const heatmapEndTime = formatDateParam(endDate);
+
+    // Fetch service_time and service_count for heatmaps
+    const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
+    const heatmapCountData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_count');
+
+    // Combine time and count data
+    const combinedHeatmapData = heatmapTimeData.map(timeItem => {
+      const countItem = heatmapCountData.find(c => c.time === timeItem.time);
+      return {
+        time: timeItem.time,
+        responseTime: timeItem.value,
+        count: countItem ? countItem.value : 0
+      };
+    });
+
+    renderDayHourHeatmap(combinedHeatmapData);
+    renderOverallHeatmap(combinedHeatmapData);
 
   } catch (error) {
     console.error('Data loading failed:', error);
@@ -635,6 +686,146 @@ function updateChartStatsGrid(labels, chart) {
   });
 }
 
+function renderDayHourHeatmap(data) {
+  const container = document.getElementById('dayHourHeatmap');
+  if (!container) return;
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="heatmap-placeholder">데이터가 없습니다.</div>';
+    return;
+  }
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+
+  // Group data by day and hour
+  // dayHourMap[dayIndex][hourIndex] = { sum: 0, count: 0 }
+  const dayHourMap = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ sum: 0, count: 0 })));
+
+  let currentDayStr = '';
+  let hourIdx = 0;
+
+  data.forEach(item => {
+    const timeStr = String(item.time); // yyyyMMdd
+    if (timeStr.length < 8) return;
+    
+    // If the date changes, reset hourIdx
+    if (timeStr !== currentDayStr) {
+      currentDayStr = timeStr;
+      hourIdx = 0;
+    }
+
+    const year = parseInt(timeStr.substring(0, 4));
+    const month = parseInt(timeStr.substring(4, 6)) - 1;
+    const day = parseInt(timeStr.substring(6, 8));
+    
+    const date = new Date(year, month, day);
+    const dayIdx = date.getDay();
+    
+    const hour = hourIdx % 24; // Ensure stays within 0-23
+    
+    if (dayHourMap[dayIdx][hour]) {
+      dayHourMap[dayIdx][hour].sum += item.responseTime;
+      dayHourMap[dayIdx][hour].count++;
+    }
+
+    hourIdx++;
+  });
+
+  let html = '<table class="heatmap-table">';
+  html += '<thead><tr><th></th>';
+  hours.forEach(h => {
+    html += `<th>${h}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  days.forEach((day, dIdx) => {
+    html += `<tr><td class="cell-label">${day}</td>`;
+    hours.forEach((h, hIdx) => {
+      const cell = dayHourMap[dIdx][parseInt(h)];
+      const avg = cell.count > 0 ? cell.sum / cell.count : 0;
+      
+      let colorClass = '';
+      if (cell.count === 0) {
+        colorClass = '';
+      } else if (avg < 100) {
+        colorClass = 'good';
+      } else if (avg < 300) {
+        colorClass = 'warning';
+      } else {
+        colorClass = 'danger';
+      }
+      
+      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}ms` : 'No data';
+      html += `<td class="${colorClass}" onmouseover="showHeatmapTooltip(event, '${tooltipText}')" onmouseout="hideHeatmapTooltip()"></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div id="heatmapTooltip" class="heatmap-tooltip"></div>';
+
+  container.innerHTML = html;
+}
+
+function renderOverallHeatmap(data) {
+  const container = document.getElementById('overallHeatmap');
+  if (!container) return;
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="heatmap-placeholder">데이터가 없습니다.</div>';
+    return;
+  }
+
+  // Determine buckets for responseTime (X) and serviceCount (Y)
+  const maxTime = Math.max(...data.map(d => d.responseTime), 100);
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+
+  const xBuckets = 20;
+  const yBuckets = 20;
+
+  const grid = Array.from({ length: yBuckets }, () => Array.from({ length: xBuckets }, () => 0));
+
+  data.forEach(item => {
+    const xIdx = Math.min(Math.floor((item.responseTime / maxTime) * xBuckets), xBuckets - 1);
+    const yIdx = Math.min(Math.floor((item.count / maxCount) * yBuckets), yBuckets - 1);
+    grid[yIdx][xIdx]++;
+  });
+
+  const maxDensity = Math.max(...grid.flat(), 1);
+
+  let html = '<div class="overall-heatmap-grid">';
+  for (let y = yBuckets - 1; y >= 0; y--) {
+    for (let x = 0; x < xBuckets; x++) {
+      const density = grid[y][x];
+      const opacity = density > 0 ? 0.1 + (density / maxDensity) * 0.9 : 0.05;
+      const tooltipText = `Time: ~${Math.round((x+1) * maxTime / xBuckets)}ms<br/>Count: ~${Math.round((y+1) * maxCount / yBuckets)}<br/>Points: ${density}`;
+      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}')" onmouseout="hideHeatmapTooltip()"></div>`;
+    }
+  }
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+window.showHeatmapTooltip = function(event, text) {
+  const tooltip = document.getElementById('heatmapTooltip');
+  if (!tooltip) return;
+  
+  tooltip.innerHTML = text;
+  tooltip.style.display = 'block';
+  
+  const x = event.pageX + 10;
+  const y = event.pageY + 10;
+  
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+};
+
+window.hideHeatmapTooltip = function() {
+  const tooltip = document.getElementById('heatmapTooltip');
+  if (tooltip) tooltip.style.display = 'none';
+};
+
 function updateFooterHoverStats(monthStr) {
   // No longer used for DOM footer - stats are rendered directly in chart canvas
 }
@@ -717,4 +908,23 @@ function mockDataOnFailPartial(metrics, metricsName) {
 
   updateChart('mainChart', metricsName, mockData, '#22c55e', mainChartInstance, (instance) => mainChartInstance = instance);
   updateSummaryCardsPartial(metrics, mockData);
+
+  // Mock Heatmap Data
+  const heatmapMockData = [];
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  for (let i = 0; i < 30 * 24; i++) {
+    const d = new Date(start.getTime() + i * 3600000);
+    const timeStr = d.getFullYear() + 
+                    String(d.getMonth() + 1).padStart(2, '0') + 
+                    String(d.getDate()).padStart(2, '0') + 
+                    String(d.getHours()).padStart(2, '0') + "00";
+    heatmapMockData.push({
+      time: timeStr,
+      responseTime: 50 + Math.random() * 400,
+      count: Math.floor(Math.random() * 1000)
+    });
+  }
+  renderDayHourHeatmap(heatmapMockData);
+  renderOverallHeatmap(heatmapMockData);
 }
