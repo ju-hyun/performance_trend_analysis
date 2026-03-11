@@ -237,9 +237,10 @@ async function loadData() {
     const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
     const heatmapCountData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_count');
 
-    // Combine time and count data
-    const combinedHeatmapData = heatmapTimeData.map(timeItem => {
-      const countItem = heatmapCountData.find(c => c.time === timeItem.time);
+    // Combine time and count data by index (both arrays should have same order)
+    // API returns same-ordered data for both metrics
+    const combinedHeatmapData = heatmapTimeData.map((timeItem, idx) => {
+      const countItem = heatmapCountData[idx]; // same index = same time slot
       return {
         time: timeItem.time,
         responseTime: timeItem.value,
@@ -702,34 +703,28 @@ function renderDayHourHeatmap(data) {
   // dayHourMap[dayIndex][hourIndex] = { sum: 0, count: 0 }
   const dayHourMap = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ sum: 0, count: 0 })));
 
-  let currentDayStr = '';
-  let hourIdx = 0;
-
+  // Group items by date, then map each date's items to hours 0..23 in order
+  const groupedByDate = {};
   data.forEach(item => {
-    const timeStr = String(item.time); // yyyyMMdd
-    if (timeStr.length < 8) return;
-    
-    // If the date changes, reset hourIdx
-    if (timeStr !== currentDayStr) {
-      currentDayStr = timeStr;
-      hourIdx = 0;
-    }
+    const dateKey = String(item.time).substring(0, 8);
+    if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+    groupedByDate[dateKey].push(item);
+  });
 
-    const year = parseInt(timeStr.substring(0, 4));
-    const month = parseInt(timeStr.substring(4, 6)) - 1;
-    const day = parseInt(timeStr.substring(6, 8));
-    
+  Object.entries(groupedByDate).forEach(([dateKey, items]) => {
+    const year = parseInt(dateKey.substring(0, 4));
+    const month = parseInt(dateKey.substring(4, 6)) - 1;
+    const day = parseInt(dateKey.substring(6, 8));
     const date = new Date(year, month, day);
     const dayIdx = date.getDay();
-    
-    const hour = hourIdx % 24; // Ensure stays within 0-23
-    
-    if (dayHourMap[dayIdx][hour]) {
+
+    // Map each item in order to hour 0, 1, 2, ...
+    // API returns 24 items per day in chronological order
+    items.forEach((item, posInDay) => {
+      const hour = posInDay % 24;
       dayHourMap[dayIdx][hour].sum += item.responseTime;
       dayHourMap[dayIdx][hour].count++;
-    }
-
-    hourIdx++;
+    });
   });
 
   let html = '<table class="heatmap-table">';
@@ -760,9 +755,9 @@ function renderDayHourHeatmap(data) {
       const cellValue = cell.count > 0 ? Math.round(avg) : '';
       html += `<td class="${colorClass}" 
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
-                onmouseout="hideHeatmapTooltip()"
-                onmouseenter="this.innerText='${cellValue}'"
-                onmouseleave="this.innerText=''"></td>`;
+                onmouseout="hideHeatmapTooltip()">
+                <span class="hover-value">${cellValue}</span>
+              </td>`;
     });
     html += '</tr>';
   });
