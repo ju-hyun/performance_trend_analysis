@@ -17,65 +17,7 @@
 
 <body>
   <div class="app-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="24" height="24" rx="4" fill="#8b5cf6" />
-          <path d="M12 6V18M12 6L8 10M12 6L16 10" stroke="white" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-        </svg>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span>대시보드</span>
-        </a>
-        <a href="#" class="nav-item">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20v-6M6 20V10M18 20V4"></path>
-          </svg>
-          <span>사용자 정의</span>
-        </a>
-        <a href="#" class="nav-item">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 16v-4"></path>
-            <path d="M12 8h.01"></path>
-          </svg>
-          <span>분석</span>
-        </a>
-        <a href="#" class="nav-item active">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"></path>
-            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
-          </svg>
-          <span>통계</span>
-        </a>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Header -->
-      <header class="header">
-        <div class="breadcrumb">
-          <span>성능트렌드 분석</span>
-        </div>
-        <div class="header-actions">
-          <!-- Header actions (icons) can go here -->
-        </div>
-      </header>
-
       <!-- Filters Section -->
       <section class="filters-card">
         <div class="filter-group">
@@ -128,7 +70,6 @@
       </section>
 
       <!-- Charts Grid -->
-
       <section class="charts-grid">
         <div class="chart-card single-chart-card">
           <div class="chart-header">
@@ -144,21 +85,16 @@
           <div class="chart-stats-container" id="chartStats">
             <div class="stats-row stats-avg-row">
               <div class="stats-label">평균</div>
-              <div class="stats-values-wrapper" id="statsAvgValues">
-                <!-- Moonthly Avg Values will be injected here -->
-              </div>
+              <div class="stats-values-wrapper" id="statsAvgValues"></div>
             </div>
             <div class="stats-row stats-rate-row">
               <div class="stats-label">전월비</div>
-              <div class="stats-values-wrapper" id="statsRateValues">
-                <!-- Monthly Rate Values will be injected here -->
-              </div>
+              <div class="stats-values-wrapper" id="statsRateValues"></div>
             </div>
           </div>
         </div>
       </section>
     </main>
-  </div>
 
   <script type="module" src="/src/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

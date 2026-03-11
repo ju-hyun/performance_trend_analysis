@@ -27,6 +27,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
+  font-size: 12px;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -102,7 +103,7 @@ body {
 /* Main Content */
 .main-content {
   flex: 1;
-  padding: 1.5rem 2.5rem;
+  padding: 1.25rem;
   overflow-y: auto;
 }
 
@@ -222,14 +223,12 @@ body {
 .summary-card {
   background: var(--card-bg);
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  text-align: center;
+  text-align: left;
   transition: transform 0.2s;
 }
 
@@ -239,17 +238,17 @@ body {
 }
 
 .summary-card h3 {
-  font-size: 0.875rem;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
 .summary-value {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .summary-value .unit {
