@@ -345,7 +345,7 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
   };
 
   // Compute month-by-month averages BEFORE creating/updating chart so afterDraw has data
-  calculateMonthlyAverages(labels, values, label);
+  calculateMonthlyAverages(data, label);
 
   if (chartInstance && chartInstance.config.type !== currentChartType) {
     chartInstance.destroy();
@@ -457,44 +457,70 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
 let monthlyAveragesCache = {};
 let currentMetricLabelCache = '';
 
-function calculateMonthlyAverages(labels, values, label) {
+function calculateMonthlyAverages(data, label) {
   currentMetricLabelCache = label;
   monthlyAveragesCache = {};
 
   const monthData = {};
+  const today = new Date();
+  const todayStr = today.getFullYear() + 
+                   String(today.getMonth() + 1).padStart(2, '0') + 
+                   String(today.getDate()).padStart(2, '0');
 
-  labels.forEach((lbl, i) => {
+  // Group data by month, but ONLY up to today for the current month/future
+  data.forEach(item => {
+    if (item.time > todayStr) return; // Future data (zeros) should not be averaged
+
+    const lbl = parseDateString(item.time);
     const month = lbl.split('/')[0];
     if (!monthData[month]) monthData[month] = [];
-    monthData[month].push(values[i]);
+    monthData[month].push(item.value);
   });
 
-  // Calculate avg per month
-  const sortedMonths = Object.keys(monthData).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)); // Just 1..12 naive sort is ok if 12 months present, but wait, it's cross year potentially. Wait, we fetch past 12 months. So 1 to 12 exist. To get previous month rate, we need chronological order. A better way is using original date string order.
-
-  // Since we know data is chronologically sorted:
-  let lastMonth = null;
-  labels.forEach((lbl, i) => {
-    const month = lbl.split('/')[0];
-    if (month !== lastMonth && lastMonth !== null && !monthlyAveragesCache[month]) {
-      monthlyAveragesCache[month] = { prevAvgMonth: lastMonth };
-    } else if (!monthlyAveragesCache[month]) {
-      monthlyAveragesCache[month] = { prevAvgMonth: null };
+  // Since data is chronologically sorted, identify the order of months
+  const monthsInOrder = [];
+  let lastM = null;
+  data.forEach(item => {
+    const m = parseDateString(item.time).split('/')[0];
+    if (m !== lastM) {
+      monthsInOrder.push(m);
+      lastM = m;
     }
-    lastMonth = month;
   });
 
-  Object.keys(monthData).forEach(m => {
+  // Calculate avg per month and set up prev month references
+  monthsInOrder.forEach((m, idx) => {
+    if (!monthData[m]) return;
+    
     const arr = monthData[m];
     const avg = arr.reduce((acc, v) => acc + v, 0) / arr.length;
-    monthlyAveragesCache[m].avg = avg;
+    
+    monthlyAveragesCache[m] = {
+      avg: avg,
+      prevAvgMonth: idx > 0 ? monthsInOrder[idx - 1] : null
+    };
   });
 
-  // Compute rates
-  Object.keys(monthlyAveragesCache).forEach(m => {
+  // Compute MoM rates
+  monthsInOrder.forEach((m, idx) => {
     const d = monthlyAveragesCache[m];
+    if (!d) return;
+
     if (d.prevAvgMonth && monthlyAveragesCache[d.prevAvgMonth]) {
-      const prevAvg = monthlyAveragesCache[d.prevAvgMonth].avg;
+      let prevAvg;
+      const isLastMonth = (idx === monthsInOrder.length - 1);
+
+      if (isLastMonth) {
+        // Like-for-like comparison: 
+        // Compare current month's count of days with the same count from the start of the previous month.
+        const currentMonthCount = monthData[m].length;
+        const prevMonthData = monthData[d.prevAvgMonth];
+        const prevMonthSlice = prevMonthData.slice(0, currentMonthCount);
+        prevAvg = prevMonthSlice.reduce((acc, v) => acc + v, 0) / (prevMonthSlice.length || 1);
+      } else {
+        prevAvg = monthlyAveragesCache[d.prevAvgMonth].avg;
+      }
+
       if (prevAvg > 0) {
         d.rate = ((d.avg - prevAvg) / prevAvg) * 100;
       } else {
@@ -505,6 +531,8 @@ function calculateMonthlyAverages(labels, values, label) {
     }
   });
 
+  // Use the sorted order for the grid update too
+  const labels = data.map(item => parseDateString(item.time));
   updateChartStatsGrid(labels, mainChartInstance);
 }
 
