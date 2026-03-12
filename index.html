@@ -6,11 +6,7 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>성능 트렌드 분석</title>
-  <link rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css" />
-  <!-- Flatpickr CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css" rel="stylesheet" />
   <!-- D3.js & d3-hexbin -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/d3-hexbin.v0.2.min.js"></script>
@@ -43,37 +39,12 @@
             <option value="concurrent_user">동시사용자수</option>
           </select>
         </div>
-        <div class="filter-group custom-date-group">
-          <label>조회 기간</label>
-          <div class="date-picker-wrapper">
-            <input type="text" id="dateRange" class="form-input" placeholder="날짜 선택">
-            <span class="calendar-icon">📅</span>
-          </div>
-        </div>
+
         <div class="filter-actions">
           <button id="searchBtn" class="btn btn-primary">조회</button>
         </div>
       </section>
 
-      <!-- Summary Cards -->
-      <section class="summary-cards">
-        <div class="summary-card">
-          <h3>기간 피크일</h3>
-          <div class="summary-value" id="peakDate">-</div>
-        </div>
-        <div class="summary-card">
-          <h3>평균 응답시간</h3>
-          <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
-        </div>
-        <div class="summary-card">
-          <h3>평균 TPS</h3>
-          <div class="summary-value" id="avgTps">0</div>
-        </div>
-        <div class="summary-card">
-          <h3>평균 동시사용자</h3>
-          <div class="summary-value" id="avgConcurrentUsers">0</div>
-        </div>
-      </section>
 
       <!-- Charts Grid -->
       <section class="charts-grid">
@@ -98,6 +69,35 @@
               <div class="stats-values-wrapper" id="statsRateValues"></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      </section>
+
+      <!-- Selection Info (Moved here) -->
+      <section class="selection-info">
+        <div class="selected-range">
+          조회 기간: <span id="selectedRangeDisplay">로딩 중...</span>
+        </div>
+      </section>
+
+      <!-- Summary Cards (Moved to bottom) -->
+      <section class="summary-cards">
+        <div class="summary-card">
+          <h3>기간 피크일</h3>
+          <div class="summary-value" id="peakDate">-</div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 응답시간</h3>
+          <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 TPS</h3>
+          <div class="summary-value" id="avgTps">0</div>
+        </div>
+        <div class="summary-card">
+          <h3>평균 동시사용자</h3>
+          <div class="summary-value" id="avgConcurrentUsers">0</div>
         </div>
       </section>
 

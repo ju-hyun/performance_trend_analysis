@@ -16,14 +16,18 @@ let mainChartInstance = null;
 let currentChartType = 'line';
 let currentMetricData = [];
 
+// Chart Selection State
+let selectedStartMonth = null;
+let selectedEndMonth = null;
+let isSelecting = false;
+let dragStartX = null;
+let dragCurrentX = null;
+
 // DOM Elements
 const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
 const metricsSelect = document.getElementById('metricsSelect');
-const dateRangeInput = document.getElementById('dateRange');
 const searchBtn = document.getElementById('searchBtn');
-
-let datePicker = null;
 
 // Configure Chart.js global defaults
 Chart.defaults.font.family = '"Pretendard JP", sans-serif';
@@ -34,23 +38,6 @@ Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 4;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize Flatpickr
-  const today = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(today.getDate() - 30);
-
-  datePicker = flatpickr(dateRangeInput, {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    defaultDate: [thirtyDaysAgo, today],
-    locale: "ko",
-    onChange: function(selectedDates) {
-      if (selectedDates.length === 2) {
-        // loadData(); // Auto search on date change
-      }
-    }
-  });
-
   // Load domains first
   await loadDomains();
 
@@ -216,19 +203,19 @@ async function loadData() {
       mainChartInstance = instance;
     });
 
+    // Reset selection state and update text on full load
+    selectedStartMonth = null;
+    selectedEndMonth = null;
+    const rangeDisplay = document.getElementById('selectedRangeDisplay');
+    if (rangeDisplay) rangeDisplay.textContent = '전체 (1년)';
+
     // Update Summary Cards
     updateSummaryCardsPartial(metrics, currentMetricData);
 
-    // Heatmaps Data Fetching (Selected Range)
-    let startDate, endDate;
-    if (datePicker && datePicker.selectedDates.length === 2) {
-      startDate = datePicker.selectedDates[0];
-      endDate = datePicker.selectedDates[1];
-    } else {
-      endDate = new Date();
-      startDate = new Date();
-      startDate.setDate(endDate.getDate() - 30);
-    }
+    // Heatmaps Data Fetching (Default 30 days backward from today if no selection)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 30);
 
     // To include the endDate in the API fetch, we must request up to endDate + 1 day
     const fetchEndDate = new Date(endDate);
@@ -370,15 +357,141 @@ const monthBoundaryPlugin = {
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // lighter line color
     ctx.setLineDash([2, 2]); // shorter dash and gap
-    boundaries.forEach(lineX => {
-      ctx.moveTo(lineX, chartArea.top);
-      ctx.lineTo(lineX, chartArea.bottom);
-    });
     ctx.stroke();
     ctx.restore();
   },
   afterDraw(chart) {
     // Stats are now rendered in HTML section instead of canvas
+  }
+};
+
+const selectionRangePlugin = {
+  id: 'selectionRange',
+  afterEvent(chart, args) {
+    const event = args.event;
+    if (event.type === 'mousedown') {
+      isSelecting = true;
+      dragStartX = event.x;
+      dragCurrentX = event.x;
+      args.changed = true;
+    } else if (event.type === 'mousemove' && isSelecting) {
+      dragCurrentX = event.x;
+      args.changed = true;
+    } else if (event.type === 'mouseup' || (event.type === 'mouseout' && isSelecting)) {
+      if (isSelecting) {
+        isSelecting = false;
+        
+        // Calculate selected range based on pixel coordinates
+        if (Math.abs(dragCurrentX - dragStartX) > 10) {
+          // Drag selection
+          const xAxis = chart.scales.x;
+          let val1 = xAxis.getValueForPixel(dragStartX);
+          let val2 = xAxis.getValueForPixel(dragCurrentX);
+          
+          if (val1 > val2) {
+            const temp = val1;
+            val1 = val2;
+            val2 = temp;
+          }
+          
+          let idx1 = Math.round(val1);
+          let idx2 = Math.round(val2);
+          
+          const maxIndex = chart.data.labels.length - 1;
+          idx1 = Math.max(0, Math.min(idx1, maxIndex));
+          idx2 = Math.max(0, Math.min(idx2, maxIndex));
+          
+          selectedStartMonth = chart.data.labels[idx1].split('/')[0];
+          selectedEndMonth = chart.data.labels[idx2].split('/')[0];
+          
+          // Trigger data update
+          handleChartSelectionChanged();
+        } else {
+          // Click selection (single month or clear)
+          const xAxis = chart.scales.x;
+          let idx = Math.round(xAxis.getValueForPixel(event.x));
+          const maxIndex = chart.data.labels.length - 1;
+          
+          if (idx >= 0 && idx <= maxIndex) {
+            const clickedMonth = chart.data.labels[idx].split('/')[0];
+            
+            // Toggle off if clicking the already selected exactly
+            if (selectedStartMonth === clickedMonth && selectedEndMonth === clickedMonth) {
+              selectedStartMonth = null;
+              selectedEndMonth = null;
+            } else {
+              selectedStartMonth = clickedMonth;
+              selectedEndMonth = clickedMonth;
+            }
+            // Trigger data update
+            handleChartSelectionChanged();
+          }
+        }
+        
+        args.changed = true;
+      }
+    }
+  },
+  beforeDraw(chart) {
+    const { ctx, chartArea, scales: { x } } = chart;
+    const labels = chart.data.labels;
+    if (!labels || labels.length === 0) return;
+
+    // Draw active drag selection box
+    if (isSelecting && dragStartX !== null && dragCurrentX !== null) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'; // Blue tint for selection box
+      const start = Math.min(dragStartX, dragCurrentX);
+      const width = Math.abs(dragCurrentX - dragStartX);
+      ctx.fillRect(start, chartArea.top, width, chartArea.bottom - chartArea.top);
+      ctx.restore();
+    }
+    
+    // Draw finalized selected months highlighting
+    if (!isSelecting && selectedStartMonth && selectedEndMonth) {
+      // Find start and end pixels for the selected months bounds
+      let startPixel = null;
+      let endPixel = null;
+      
+      const getBoundaryX = (i) => {
+        if (i === 0) return chartArea.left;
+        if (i >= labels.length) return chartArea.right;
+        return (x.getPixelForValue(i - 1) + x.getPixelForValue(i)) / 2;
+      };
+
+      let currentMonth = labels[0].split('/')[0];
+      let tStartIdx = 0;
+      
+      for (let i = 1; i <= labels.length; i++) {
+        const month = i < labels.length ? labels[i].split('/')[0] : null;
+        if (month !== currentMonth) {
+          if (currentMonth === selectedStartMonth) {
+            startPixel = getBoundaryX(tStartIdx);
+          }
+          if (currentMonth === selectedEndMonth) {
+            endPixel = getBoundaryX(i);
+          }
+          currentMonth = month;
+          tStartIdx = i;
+        }
+      }
+      
+      // Ensure start and end are ordered correctly in case of crossed year boundaries
+      if (startPixel !== null && endPixel !== null) {
+        if (startPixel > endPixel) {
+           const temp = startPixel;
+           startPixel = endPixel;
+           endPixel = temp;
+        }
+        ctx.save();
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; // Blue tint for selected range
+        ctx.fillRect(startPixel, chartArea.top, endPixel - startPixel, chartArea.bottom - chartArea.top);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(startPixel, chartArea.top, endPixel - startPixel, chartArea.bottom - chartArea.top);
+        ctx.restore();
+      }
+    }
   }
 };
 
@@ -441,8 +554,9 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
         labels: labels,
         datasets: [datasetConfig]
       },
-      plugins: [monthBoundaryPlugin],
+      plugins: [monthBoundaryPlugin, selectionRangePlugin],
       options: {
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'mousedown', 'mouseup'], // Required to capture drag start/end
         responsive: true,
         maintainAspectRatio: false,
         layout: {
@@ -690,6 +804,123 @@ function updateChartStatsGrid(labels, chart) {
     }
     rateWrapper.appendChild(rateItem);
   });
+}
+
+
+// Selection Change Handler
+async function handleChartSelectionChanged() {
+  const rangeDisplay = document.getElementById('selectedRangeDisplay');
+  const metrics = metricsSelect.value;
+  const domainId = domainSelect.value;
+  const instanceId = instanceSelect.value;
+
+  if (!selectedStartMonth || !selectedEndMonth) {
+    rangeDisplay.textContent = '전체 (1년)';
+    // Reset to full data
+    updateSummaryCardsPartial(metrics, currentMetricData);
+    
+    // Fall back to original 30-day default for Heatmaps
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 30);
+    await reloadHeatmaps(domainId, instanceId, startDate, endDate);
+    return;
+  }
+
+  // Find actual start and end dates from currentMetricData based on selected month labels
+  // The data has `time`: '202603010000', `label`: '03/01'
+  let startIdx = -1;
+  let endIdx = -1;
+  
+  // Convert '03' (for example) to '202603' or matching substring
+  // We'll iterate through labels to find the exact start/end data indices
+  const labels = currentMetricData.map(item => parseDateString(item.time));
+  
+  // Because selectedStartMonth/EndMonth could be out of order in the UI drag (already sorted in plugin)
+  let tStartMonth = selectedStartMonth;
+  let tEndMonth = selectedEndMonth;
+  
+  // Find first occurrence of start month
+  for (let i = 0; i < labels.length; i++) {
+    if (labels[i].startsWith(tStartMonth + '/')) {
+      startIdx = i;
+      break;
+    }
+  }
+  
+  // Find last occurrence of end month
+  for (let i = labels.length - 1; i >= 0; i--) {
+    if (labels[i].startsWith(tEndMonth + '/')) {
+      endIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx !== -1 && endIdx !== -1) {
+    if (startIdx > endIdx) {
+      const temp = startIdx;
+      startIdx = endIdx;
+      endIdx = temp;
+      
+      const tTemp = tStartMonth;
+      tStartMonth = tEndMonth;
+      tEndMonth = tTemp;
+    }
+    
+    // 1. Update Display Text
+    const startStr = currentMetricData[startIdx].time.substring(0, 8); // yyyymmdd
+    const endStr = currentMetricData[endIdx].time.substring(0, 8);
+    
+    const formattedStart = `${startStr.substring(0,4)}.${startStr.substring(4,6)}.${startStr.substring(6,8)}`;
+    const formattedEnd = `${endStr.substring(0,4)}.${endStr.substring(4,6)}.${endStr.substring(6,8)}`;
+    rangeDisplay.textContent = `${formattedStart} ~ ${formattedEnd}`;
+
+    // 2. Filter data for Summary Cards
+    const filteredData = currentMetricData.slice(startIdx, endIdx + 1);
+    updateSummaryCardsPartial(metrics, filteredData);
+
+    // 3. Reload Heatmaps with Precise Date Range
+    // Create actual Date objects for the start and end of the exact data bounds
+    const sYear = parseInt(startStr.substring(0,4), 10);
+    const sMonth = parseInt(startStr.substring(4,6), 10) - 1;
+    const sDay = parseInt(startStr.substring(6,8), 10);
+    
+    const eYear = parseInt(endStr.substring(0,4), 10);
+    const eMonth = parseInt(endStr.substring(4,6), 10) - 1;
+    const eDay = parseInt(endStr.substring(6,8), 10);
+    
+    const exactStartDate = new Date(sYear, sMonth, sDay);
+    const exactEndDate = new Date(eYear, eMonth, eDay);
+
+    await reloadHeatmaps(domainId, instanceId, exactStartDate, exactEndDate);
+  }
+}
+
+async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
+  try {
+    const fetchEndDate = new Date(endDate);
+    fetchEndDate.setDate(fetchEndDate.getDate() + 1);
+
+    const heatmapStartTime = formatDateParam(startDate);
+    const heatmapEndTime = formatDateParam(fetchEndDate);
+
+    const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
+    const heatmapCountData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_count');
+
+    const combinedHeatmapData = heatmapTimeData.map((timeItem, idx) => {
+      const countItem = heatmapCountData[idx];
+      return {
+        time: timeItem.time,
+        responseTime: timeItem.value,
+        count: countItem ? countItem.value : 0
+      };
+    });
+
+    renderDayHourHeatmap(combinedHeatmapData);
+    renderOverallHeatmap(combinedHeatmapData);
+  } catch (error) {
+    console.error("Heatmaps reloading failed:", error);
+  }
 }
 
 function renderDayHourHeatmap(data) {

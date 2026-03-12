@@ -486,6 +486,20 @@ body {
   }
 }
 
+/* Selection Info */
+.selection-info {
+  margin-top: -1rem; /* Pull up closer to the chart grid */
+  margin-bottom: 1rem;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.selection-info span {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 /* Heatmaps */
 .heatmaps-grid {
   display: grid;
