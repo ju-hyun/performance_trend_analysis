@@ -796,25 +796,33 @@ function renderDayHourHeatmap(data) {
   });
   html += '</tr></thead><tbody>';
 
-  days.forEach((day, dIdx) => {
+    days.forEach((day, dIdx) => {
     html += `<tr><td class="cell-label">${day}</td>`;
     hours.forEach((h, hIdx) => {
       const cell = dayHourMap[dIdx][parseInt(h)];
       const avg = cell.count > 0 ? cell.sum / cell.count : 0;
       
-      let colorClass = '';
-      if (cell.count === 0) {
-        colorClass = '';
-      } else if (avg <= goodThreshold) {
-        colorClass = 'good';
-      } else if (avg <= warningThreshold) {
-        colorClass = 'warning';
-      } else {
-        colorClass = 'danger';
+      // Interpolate colors based on value
+      // 0: Light background, Low: Green, Mid: Yellow, High: Red
+      let bgColor = 'rgba(0, 0, 0, 0.05)'; // Default for no data in light theme
+      if (cell.count > 0) {
+        // Create a custom scale:
+        // 0 -> #dcfce7 (Very Light Green)
+        // goodThreshold -> #22c55e (Green - 양호)
+        // warningThreshold -> #facc15 (Yellow - 주의)
+        // Max -> #ef4444 (Red - 나쁨)
+        
+        const maxVal = Math.max(warningThreshold * 1.5, avg); // Ensure red is reached
+        const colorScale = d3.scaleLinear()
+          .domain([0, goodThreshold, warningThreshold, maxVal])
+          .range(['#dcfce7', '#22c55e', '#facc15', '#ef4444'])
+          .clamp(true);
+          
+        bgColor = colorScale(avg);
       }
       
       const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}ms` : 'No data';
-      html += `<td class="${colorClass}" 
+      html += `<td style="background-color: ${bgColor}" 
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
                 onmouseout="hideHeatmapTooltip()">
               </td>`;

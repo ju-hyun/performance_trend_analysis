@@ -546,47 +546,71 @@ body {
 
 .heatmap-table {
   border-collapse: separate;
-  border-spacing: 2px;
+  border-spacing: 3px; /* Smaller spacing based on image */
   width: 100%;
   table-layout: fixed;
+  background-color: transparent;
+  position: relative;
 }
 
 .heatmap-table th {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-secondary);
-  padding: 4px;
+  padding: 8px 0px;
   text-align: center;
 }
 
 .heatmap-table td {
   height: 24px;
-  min-width: 15px;
-  border-radius: 2px;
+  min-width: 24px;
+  border-radius: 4px; /* Image has subtle rounded corners */
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
   text-align: center;
   vertical-align: middle;
-  font-size: 10px;
-  font-weight: 500;
-  color: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.05); /* Light theme border */
+  position: relative;
 }
 
 .heatmap-table td:hover {
   transform: scale(1.1);
   z-index: 10;
-  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); /* Light theme shadow */
+  filter: brightness(0.95) saturate(1.2);
+}
+
+/* Vertical highlighting line across the column */
+.heatmap-table td:hover::after {
+  content: '';
+  position: absolute;
+  top: -1000px; /* Stretch up */
+  bottom: -1000px; /* Stretch down */
+  left: 50%;
+  width: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
+  pointer-events: none; /* Ignore mouse over the line */
+  z-index: -1;
 }
 
 .cell-label {
-  font-size: 0.75rem;
-  color: #334155; /* Slate 700 */
-  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-secondary); 
+  font-weight: 500;
   text-align: right;
-  padding-right: 20px; /* Increased spacing between label and map */
+  padding-right: 16px;
   white-space: nowrap;
   cursor: default;
-  font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace; /* Use monospace font for labels */
+  font-family: inherit;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.cell-label:hover::after, .cell-label:hover {
+  transform: none;
+  box-shadow: none;
+  filter: none;
+  z-index: 1;
 }
 
 .hover-value {
