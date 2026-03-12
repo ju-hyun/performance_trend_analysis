@@ -727,6 +727,46 @@ function renderDayHourHeatmap(data) {
     });
   });
 
+  // Calculate dynamic thresholds based on Median and IQR
+  const allAverages = [];
+  dayHourMap.forEach(day => {
+    day.forEach(hour => {
+      if (hour.count > 0) {
+        allAverages.push(hour.sum / hour.count);
+      }
+    });
+  });
+
+  let goodThreshold = 100;
+  let warningThreshold = 300;
+
+  if (allAverages.length > 0) {
+    allAverages.sort((a, b) => a - b);
+    const percentile = (arr, p) => {
+      if (arr.length === 0) return 0;
+      if (typeof p !== 'number') throw new TypeError('p must be a number');
+      if (p <= 0) return arr[0];
+      if (p >= 1) return arr[arr.length - 1];
+      const index = (arr.length - 1) * p;
+      const lower = Math.floor(index);
+      const upper = lower + 1;
+      const weight = index % 1;
+      if (upper >= arr.length) return arr[lower];
+      return arr[lower] * (1 - weight) + arr[upper] * weight;
+    };
+
+    const q1 = percentile(allAverages, 0.25);
+    const q3 = percentile(allAverages, 0.75);
+    const iqr = q3 - q1;
+
+    // Redefine thresholds statistically
+    // Good: <= Q3 (Upper quartile - 75% of data is good)
+    // Warning: <= Q3 + 1.5 * IQR (Statistical inner fence for mild outliers)
+    // Bad: > Warning (Statistical outer fence/outliers)
+    goodThreshold = q3;
+    warningThreshold = q3 + (1.5 * iqr);
+  }
+
   let html = '<table class="heatmap-table">';
   html += '<thead><tr><th></th>';
   hours.forEach(h => {
@@ -743,9 +783,9 @@ function renderDayHourHeatmap(data) {
       let colorClass = '';
       if (cell.count === 0) {
         colorClass = '';
-      } else if (avg < 100) {
+      } else if (avg <= goodThreshold) {
         colorClass = 'good';
-      } else if (avg < 300) {
+      } else if (avg <= warningThreshold) {
         colorClass = 'warning';
       } else {
         colorClass = 'danger';
