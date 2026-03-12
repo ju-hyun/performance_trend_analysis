@@ -814,11 +814,9 @@ function renderDayHourHeatmap(data) {
       }
       
       const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}ms` : 'No data';
-      const cellValue = cell.count > 0 ? Math.round(avg) : '';
       html += `<td class="${colorClass}" 
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
                 onmouseout="hideHeatmapTooltip()">
-                <span class="hover-value">${cellValue}</span>
               </td>`;
     });
     html += '</tr>';
