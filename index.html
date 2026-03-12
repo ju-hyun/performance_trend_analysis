@@ -6,7 +6,8 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>성능 트렌드 분석</title>
-  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
+    rel="stylesheet" />
   <!-- D3.js & d3-hexbin -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://d3js.org/d3-hexbin.v0.2.min.js"></script>
@@ -74,29 +75,77 @@
 
       </section>
 
-      <!-- Selection Info (Moved here) -->
-      <section class="selection-info">
-        <div class="selected-range">
-          조회 기간: <span id="selectedRangeDisplay">로딩 중...</span>
-        </div>
-      </section>
-
-      <!-- Summary Cards (Moved to bottom) -->
+      <!-- Summary Cards & Selection Info -->
       <section class="summary-cards">
         <div class="summary-card">
-          <h3>기간 피크일</h3>
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
+              </svg>
+            </span>
+            <h3>기간</h3>
+          </div>
+          <div class="summary-value selection-value" id="selectedRangeDisplay">로딩 중...</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+            </span>
+            <h3>피크일</h3>
+          </div>
           <div class="summary-value" id="peakDate">-</div>
         </div>
         <div class="summary-card">
-          <h3>평균 응답시간</h3>
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <h3>평균 응답시간</h3>
+          </div>
           <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
         </div>
         <div class="summary-card">
-          <h3>평균 TPS</h3>
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </span>
+            <h3>평균 TPS</h3>
+          </div>
           <div class="summary-value" id="avgTps">0</div>
         </div>
         <div class="summary-card">
-          <h3>평균 동시사용자</h3>
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <h3>평균 동시사용자</h3>
+          </div>
           <div class="summary-value" id="avgConcurrentUsers">0</div>
         </div>
       </section>

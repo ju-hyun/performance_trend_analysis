@@ -212,36 +212,9 @@ async function loadData() {
     // Update Summary Cards
     updateSummaryCardsPartial(metrics, currentMetricData);
 
-    // Heatmaps Data Fetching (Default 30 days backward from today if no selection)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
-
-    // To include the endDate in the API fetch, we must request up to endDate + 1 day
-    const fetchEndDate = new Date(endDate);
-    fetchEndDate.setDate(fetchEndDate.getDate() + 1);
-
-    // Heatmaps use 60-minute interval
-    const heatmapStartTime = formatDateParam(startDate);
-    const heatmapEndTime = formatDateParam(fetchEndDate);
-
-    // Fetch service_time and service_count for heatmaps
-    const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
-    const heatmapCountData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_count');
-
-    // Combine time and count data by index (both arrays should have same order)
-    // API returns same-ordered data for both metrics
-    const combinedHeatmapData = heatmapTimeData.map((timeItem, idx) => {
-      const countItem = heatmapCountData[idx]; // same index = same time slot
-      return {
-        time: timeItem.time,
-        responseTime: timeItem.value,
-        count: countItem ? countItem.value : 0
-      };
-    });
-
-    renderDayHourHeatmap(combinedHeatmapData);
-    renderOverallHeatmap(combinedHeatmapData);
+    // Heatmaps Data Fetching
+    // We can rely on the selection changed handler to load heatmaps for the default 1-year view
+    await handleChartSelectionChanged();
 
   } catch (error) {
     console.error('Data loading failed:', error);
@@ -817,11 +790,32 @@ async function handleChartSelectionChanged() {
     // Reset to full data
     updateSummaryCardsPartial(metrics, currentMetricData);
     
-    // Fall back to original 30-day default for Heatmaps
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
-    await reloadHeatmaps(domainId, instanceId, startDate, endDate);
+    // Fetch full data bounds from currentMetricData
+    if (currentMetricData && currentMetricData.length > 0) {
+      const startStr = currentMetricData[0].time;
+      const endStr = currentMetricData[currentMetricData.length - 1].time;
+      
+      const formatYMD = (str) => {
+        const y = str.substring(0,4);
+        const m = str.substring(4,6);
+        const d = str.substring(6,8);
+        return `${y}.${m}.${d}`;
+      };
+      rangeDisplay.innerHTML = `${formatYMD(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMD(endStr)}`;
+      
+      const sYear = parseInt(startStr.substring(0,4), 10);
+      const sMonth = parseInt(startStr.substring(4,6), 10) - 1;
+      const sDay = parseInt(startStr.substring(6,8), 10);
+      
+      const eYear = parseInt(endStr.substring(0,4), 10);
+      const eMonth = parseInt(endStr.substring(4,6), 10) - 1;
+      const eDay = parseInt(endStr.substring(6,8), 10);
+      
+      const exactStartDate = new Date(sYear, sMonth, sDay);
+      const exactEndDate = new Date(eYear, eMonth, eDay);
+
+      await reloadHeatmaps(domainId, instanceId, exactStartDate, exactEndDate);
+    }
     return;
   }
 
@@ -869,9 +863,13 @@ async function handleChartSelectionChanged() {
     const startStr = currentMetricData[startIdx].time.substring(0, 8); // yyyymmdd
     const endStr = currentMetricData[endIdx].time.substring(0, 8);
     
-    const formattedStart = `${startStr.substring(0,4)}.${startStr.substring(4,6)}.${startStr.substring(6,8)}`;
-    const formattedEnd = `${endStr.substring(0,4)}.${endStr.substring(4,6)}.${endStr.substring(6,8)}`;
-    rangeDisplay.textContent = `${formattedStart} ~ ${formattedEnd}`;
+    const formatYMD = (str) => {
+      const y = str.substring(0,4);
+      const m = str.substring(4,6);
+      const d = str.substring(6,8);
+      return `${y}.${m}.${d}`;
+    };
+    rangeDisplay.innerHTML = `${formatYMD(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMD(endStr)}`;
 
     // 2. Filter data for Summary Cards
     const filteredData = currentMetricData.slice(startIdx, endIdx + 1);
@@ -899,11 +897,42 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
     const fetchEndDate = new Date(endDate);
     fetchEndDate.setDate(fetchEndDate.getDate() + 1);
 
-    const heatmapStartTime = formatDateParam(startDate);
-    const heatmapEndTime = formatDateParam(fetchEndDate);
+    const timePromises = [];
+    const countPromises = [];
 
-    const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
-    const heatmapCountData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_count');
+    let currentStart = new Date(startDate);
+    while (currentStart < fetchEndDate) {
+      let currentEnd = new Date(currentStart);
+      currentEnd.setDate(currentEnd.getDate() + 30); // 30-day chunks to bypass 31-day API limit
+      if (currentEnd > fetchEndDate) {
+        currentEnd = new Date(fetchEndDate);
+      }
+
+      const chunkStartStr = formatDateParam(currentStart);
+      const chunkEndStr = formatDateParam(currentEnd);
+
+      timePromises.push(
+        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_time')
+          .catch(err => { console.warn("Heatmap service_time chunk failed", err); return []; })
+      );
+      countPromises.push(
+        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
+          .catch(err => { console.warn("Heatmap service_count chunk failed", err); return []; })
+      );
+
+      currentStart = currentEnd;
+    }
+
+    const timeResults = await Promise.all(timePromises);
+    const countResults = await Promise.all(countPromises);
+
+    let heatmapTimeData = [];
+    timeResults.forEach(res => heatmapTimeData.push(...res));
+    heatmapTimeData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+
+    let heatmapCountData = [];
+    countResults.forEach(res => heatmapCountData.push(...res));
+    heatmapCountData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
     const combinedHeatmapData = heatmapTimeData.map((timeItem, idx) => {
       const countItem = heatmapCountData[idx];
