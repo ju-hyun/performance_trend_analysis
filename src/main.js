@@ -762,7 +762,6 @@ function renderDayHourHeatmap(data) {
     html += '</tr>';
   });
   html += '</tbody></table>';
-  html += '<div id="heatmapTooltip" class="heatmap-tooltip"></div>';
 
   container.innerHTML = html;
 }
@@ -826,7 +825,7 @@ function renderOverallHeatmap(data) {
       const yRangeEnd = Math.round((y+1) * maxCount / yBuckets);
       
       const tooltipText = `Time: ${xRangeStart}ms ~ ${xRangeEnd}ms<br/>Count: ${yRangeStart} ~ ${yRangeEnd}<br/>Points: ${density}`;
-      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}', true)" onmouseout="hideHeatmapTooltip(true)"></div>`;
+      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}')" onmouseout="hideHeatmapTooltip()"></div>`;
     }
   }
   html += '</div></div>';
@@ -843,35 +842,32 @@ function renderOverallHeatmap(data) {
   html += '</div>';
 
   container.innerHTML = html;
-
-  // Add tooltip div if it doesn't exist within the container
-  if (!document.getElementById('overallHeatmapTooltip')) {
-    const tooltipDiv = document.createElement('div');
-    tooltipDiv.id = 'overallHeatmapTooltip';
-    tooltipDiv.className = 'heatmap-tooltip';
-    container.appendChild(tooltipDiv);
-  }
 }
 
-window.showHeatmapTooltip = function(event, text, isOverall = false) {
-  const tooltipId = isOverall ? 'overallHeatmapTooltip' : 'heatmapTooltip';
-  const tooltip = document.getElementById(tooltipId);
-  if (!tooltip) return;
+// Ensure a single global tooltip exists
+let globalHeatmapTooltip = document.getElementById('globalHeatmapTooltip');
+if (!globalHeatmapTooltip) {
+  globalHeatmapTooltip = document.createElement('div');
+  globalHeatmapTooltip.id = 'globalHeatmapTooltip';
+  globalHeatmapTooltip.className = 'heatmap-tooltip';
+  document.body.appendChild(globalHeatmapTooltip);
+}
+
+window.showHeatmapTooltip = function(event, text) {
+  if (!globalHeatmapTooltip) return;
   
-  tooltip.innerHTML = text;
-  tooltip.style.display = 'block';
+  globalHeatmapTooltip.innerHTML = text;
+  globalHeatmapTooltip.style.display = 'block';
   
-  const x = event.pageX + 10;
-  const y = event.pageY + 10;
+  const x = event.pageX + 15;
+  const y = event.pageY + 15;
   
-  tooltip.style.left = x + 'px';
-  tooltip.style.top = y + 'px';
+  globalHeatmapTooltip.style.left = x + 'px';
+  globalHeatmapTooltip.style.top = y + 'px';
 };
 
-window.hideHeatmapTooltip = function(isOverall = false) {
-  const tooltipId = isOverall ? 'overallHeatmapTooltip' : 'heatmapTooltip';
-  const tooltip = document.getElementById(tooltipId);
-  if (tooltip) tooltip.style.display = 'none';
+window.hideHeatmapTooltip = function() {
+  if (globalHeatmapTooltip) globalHeatmapTooltip.style.display = 'none';
 };
 
 function updateFooterHoverStats(monthStr) {
