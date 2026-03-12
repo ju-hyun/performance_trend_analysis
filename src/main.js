@@ -179,7 +179,8 @@ async function loadData() {
     // Main Chart: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
     for (let i = 11; i >= 0; i--) {
       const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 0);
+      // API end_time is exclusive, so use the 1st day of the next month instead of the 0th day (last day of current month)
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
       fetchPromises.push(
         fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, metrics)
           .catch(err => {
@@ -229,9 +230,13 @@ async function loadData() {
       startDate.setDate(endDate.getDate() - 30);
     }
 
+    // To include the endDate in the API fetch, we must request up to endDate + 1 day
+    const fetchEndDate = new Date(endDate);
+    fetchEndDate.setDate(fetchEndDate.getDate() + 1);
+
     // Heatmaps use 60-minute interval
     const heatmapStartTime = formatDateParam(startDate);
-    const heatmapEndTime = formatDateParam(endDate);
+    const heatmapEndTime = formatDateParam(fetchEndDate);
 
     // Fetch service_time and service_count for heatmaps
     const heatmapTimeData = await fetchMetricData(domainId, instanceId, heatmapStartTime, heatmapEndTime, 60, 'service_time');
