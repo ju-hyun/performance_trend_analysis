@@ -356,12 +356,14 @@ const monthBoundaryPlugin = {
     ctx.beginPath();
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // lighter line color
-    ctx.setLineDash([2, 2]); // shorter dash and gap
     ctx.stroke();
     ctx.restore();
   },
   afterDraw(chart) {
     // Stats are now rendered in HTML section instead of canvas
+    if (chart.data.labels && currentMetricData.length > 0) {
+      updateChartStatsGrid(chart.data.labels, chart);
+    }
   }
 };
 
@@ -715,10 +717,6 @@ function calculateMonthlyAverages(data, label) {
       d.rate = null;
     }
   });
-
-  // Use the sorted order for the grid update too
-  const labels = data.map(item => parseDateString(item.time));
-  updateChartStatsGrid(labels, mainChartInstance);
 }
 
 function updateChartStatsGrid(labels, chart) {
