@@ -767,6 +767,23 @@ function renderDayHourHeatmap(data) {
     warningThreshold = q3 + (1.5 * iqr);
   }
 
+  // Update Legend with calculated thresholds
+  const legendGoodText = document.getElementById('legendGoodText');
+  const legendWarningText = document.getElementById('legendWarningText');
+  const legendDangerText = document.getElementById('legendDangerText');
+  
+  if (legendGoodText && legendWarningText && legendDangerText) {
+    if (allAverages.length > 0) {
+      legendGoodText.textContent = `양호 (≤ ${Math.round(goodThreshold)}ms)`;
+      legendWarningText.textContent = `주의 (≤ ${Math.round(warningThreshold)}ms)`;
+      legendDangerText.textContent = `나쁨 (> ${Math.round(warningThreshold)}ms)`;
+    } else {
+      legendGoodText.textContent = '양호';
+      legendWarningText.textContent = '주의';
+      legendDangerText.textContent = '나쁨';
+    }
+  }
+
   let html = '<table class="heatmap-table">';
   html += '<thead><tr><th></th>';
   hours.forEach(h => {
