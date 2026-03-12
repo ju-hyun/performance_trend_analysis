@@ -793,22 +793,69 @@ function renderOverallHeatmap(data) {
 
   const maxDensity = Math.max(...grid.flat(), 1);
 
-  let html = '<div class="overall-heatmap-grid">';
+  // Helper to format numbers (e.g. 1500 -> 1.5k)
+  const formatNum = (num) => {
+    if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+    return num.toString();
+  };
+
+  const xMid = Math.round(maxTime / 2);
+  const yMid = Math.round(maxCount / 2);
+
+  let html = '<div class="overall-heatmap-layout">';
+  
+  // Y-Axis
+  html += `
+    <div class="overall-y-axis">
+      <span>${formatNum(maxCount)}</span>
+      <span>${formatNum(yMid)}</span>
+      <span>0</span>
+    </div>
+  `;
+
+  // Grid Wrapper
+  html += '<div class="overall-heatmap-grid-wrapper"><div class="overall-heatmap-grid">';
   for (let y = yBuckets - 1; y >= 0; y--) {
     for (let x = 0; x < xBuckets; x++) {
       const density = grid[y][x];
       const opacity = density > 0 ? 0.1 + (density / maxDensity) * 0.9 : 0.05;
-      const tooltipText = `Time: ~${Math.round((x+1) * maxTime / xBuckets)}ms<br/>Count: ~${Math.round((y+1) * maxCount / yBuckets)}<br/>Points: ${density}`;
-      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}')" onmouseout="hideHeatmapTooltip()"></div>`;
+      
+      const xRangeStart = Math.round((x) * maxTime / xBuckets);
+      const xRangeEnd = Math.round((x+1) * maxTime / xBuckets);
+      const yRangeStart = Math.round((y) * maxCount / yBuckets);
+      const yRangeEnd = Math.round((y+1) * maxCount / yBuckets);
+      
+      const tooltipText = `Time: ${xRangeStart}ms ~ ${xRangeEnd}ms<br/>Count: ${yRangeStart} ~ ${yRangeEnd}<br/>Points: ${density}`;
+      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}', true)" onmouseout="hideHeatmapTooltip(true)"></div>`;
     }
   }
+  html += '</div></div>';
+
+  // X-Axis
+  html += `
+    <div class="overall-x-axis">
+      <span>0</span>
+      <span>${formatNum(xMid)}</span>
+      <span>${formatNum(maxTime)}</span>
+    </div>
+  `;
+
   html += '</div>';
 
   container.innerHTML = html;
+
+  // Add tooltip div if it doesn't exist within the container
+  if (!document.getElementById('overallHeatmapTooltip')) {
+    const tooltipDiv = document.createElement('div');
+    tooltipDiv.id = 'overallHeatmapTooltip';
+    tooltipDiv.className = 'heatmap-tooltip';
+    container.appendChild(tooltipDiv);
+  }
 }
 
-window.showHeatmapTooltip = function(event, text) {
-  const tooltip = document.getElementById('heatmapTooltip');
+window.showHeatmapTooltip = function(event, text, isOverall = false) {
+  const tooltipId = isOverall ? 'overallHeatmapTooltip' : 'heatmapTooltip';
+  const tooltip = document.getElementById(tooltipId);
   if (!tooltip) return;
   
   tooltip.innerHTML = text;
@@ -821,8 +868,9 @@ window.showHeatmapTooltip = function(event, text) {
   tooltip.style.top = y + 'px';
 };
 
-window.hideHeatmapTooltip = function() {
-  const tooltip = document.getElementById('heatmapTooltip');
+window.hideHeatmapTooltip = function(isOverall = false) {
+  const tooltipId = isOverall ? 'overallHeatmapTooltip' : 'heatmapTooltip';
+  const tooltip = document.getElementById(tooltipId);
   if (tooltip) tooltip.style.display = 'none';
 };
 
