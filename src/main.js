@@ -837,74 +837,136 @@ function renderOverallHeatmap(data) {
     return;
   }
 
-  // Determine buckets for responseTime (X) and serviceCount (Y)
-  const maxTime = Math.max(...data.map(d => d.responseTime), 100);
-  const maxCount = Math.max(...data.map(d => d.count), 1);
+  // 1. Filter data: only items with count > 0 to find meaningful distributions
+  const validData = data.filter(d => d.count > 0);
+  if (validData.length === 0) {
+    container.innerHTML = '<div class="heatmap-placeholder">유효한 데이터가 없습니다.</div>';
+    return;
+  }
 
-  const xBuckets = 20;
-  const yBuckets = 20;
+  container.innerHTML = ''; // Clear previous
 
-  const grid = Array.from({ length: yBuckets }, () => Array.from({ length: xBuckets }, () => 0));
+  // 2. Calculate Medians (Central Axes)
+  const times = validData.map(d => d.responseTime).sort((a, b) => a - b);
+  const counts = validData.map(d => d.count).sort((a, b) => a - b);
 
-  data.forEach(item => {
-    const xIdx = Math.min(Math.floor((item.responseTime / maxTime) * xBuckets), xBuckets - 1);
-    const yIdx = Math.min(Math.floor((item.count / maxCount) * yBuckets), yBuckets - 1);
-    grid[yIdx][xIdx]++;
-  });
+  const d3Median = (arr) => {
+    const mid = Math.floor(arr.length / 2);
+    return arr.length % 2 !== 0 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+  };
+  
+  const medianX = d3Median(times);
+  const medianY = d3Median(counts);
+  const maxX = Math.max(...times, 100);
+  const maxY = Math.max(...counts, 1);
 
-  const maxDensity = Math.max(...grid.flat(), 1);
+  // 3. Setup SVG Canvas
+  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+  const containerWidth = container.clientWidth || 500;
+  // Use fixed height or responsive
+  const containerHeight = Math.max(container.clientHeight, 350) || 350;
+  
+  const width = containerWidth - margin.left - margin.right;
+  const height = containerHeight - margin.top - margin.bottom;
 
-  // Helper to format numbers (e.g. 1500 -> 1.5k)
+  const svg = d3.select(container)
+    .append("svg")
+    .attr("width", containerWidth)
+    .attr("height", containerHeight)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // 4. Scales mapping (0 -> Median -> Max) to (0 -> Width/2 -> Width)
+  // This physically forces the Median to be exactly in the center of the chart
+  const xScale = d3.scaleLinear()
+    .domain([0, medianX, maxX])
+    .range([0, width / 2, width])
+    .clamp(true);
+
+  const yScale = d3.scaleLinear()
+    .domain([0, medianY, maxY])
+    .range([height, height / 2, 0])
+    .clamp(true);
+
+  // 5. Hexbin configuration
+  // The radius determines the size of the hexagons
+  const radius = 12;
+  const hexbin = d3.hexbin()
+    .x(d => xScale(d.responseTime))
+    .y(d => yScale(d.count))
+    .radius(radius)
+    .extent([[0, 0], [width, height]]);
+
+  const bins = hexbin(validData);
+  const maxBinLength = d3.max(bins, d => d.length);
+
+  // Define a color scale mapping density to green opacity
+  // Non-linear mapping using square root for better contrast with sparse data
+  const colorScale = d3.scaleSequential(
+    (t) => `rgba(34, 197, 94, ${0.1 + (Math.pow(t, 0.5) * 0.9)})`
+  ).domain([1, maxBinLength || 1]);
+
+  // 6. Draw the 4-Quadrant Axes (Centered on Median)
+  svg.append("line")
+    .attr("x1", width / 2)
+    .attr("x2", width / 2)
+    .attr("y1", 0)
+    .attr("y2", height)
+    .attr("class", "quadrant-axis");
+
+  svg.append("line")
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("y1", height / 2)
+    .attr("y2", height / 2)
+    .attr("class", "quadrant-axis");
+
+  // 7. Render Hexagons
+  svg.append("g")
+    .attr("class", "hexagon-group")
+    .selectAll("path")
+    .data(bins)
+    .join("path")
+    .attr("d", hexbin.hexagon())
+    .attr("transform", d => `translate(${d.x},${d.y})`)
+    .attr("fill", d => colorScale(d.length))
+    .attr("stroke", "white")
+    .attr("stroke-width", "0.5")
+    .on("mouseover", function(event, d) {
+      d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
+      // Find average properties of the bin for the tooltip
+      const avgTime = d3.mean(d, p => p.responseTime);
+      const avgCount = d3.mean(d, p => p.count);
+      const tooltipText = `Time: ~${Math.round(avgTime)}ms<br/>Count: ~${Math.round(avgCount)}<br/>Points: ${d.length}`;
+      showHeatmapTooltip(event, tooltipText);
+    })
+    .on("mouseout", function() {
+      d3.select(this).attr("stroke", "white").attr("stroke-width", "0.5");
+      hideHeatmapTooltip();
+    });
+
+  // 8. Minimalist Labels (Only Medians)
   const formatNum = (num) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
-    return num.toString();
+    return Math.round(num).toString();
   };
 
-  const xMid = Math.round(maxTime / 2);
-  const yMid = Math.round(maxCount / 2);
+  // X-Axis Median Label
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height + 25)
+    .attr("class", "quadrant-label")
+    .attr("text-anchor", "middle")
+    .text(formatNum(medianX) + "ms");
 
-  let html = '<div class="overall-heatmap-layout">';
-  
-  // Y-Axis
-  html += `
-    <div class="overall-y-axis">
-      <span>${formatNum(maxCount)}</span>
-      <span>${formatNum(yMid)}</span>
-      <span>0</span>
-    </div>
-  `;
-
-  // Grid Wrapper
-  html += '<div class="overall-heatmap-grid-wrapper"><div class="overall-heatmap-grid">';
-  for (let y = yBuckets - 1; y >= 0; y--) {
-    for (let x = 0; x < xBuckets; x++) {
-      const density = grid[y][x];
-      // opacity: 0 -> 0.02, >0 -> scales smoothly from 0.05 to 1.0
-      const opacity = density > 0 ? 0.05 + Math.pow(density / maxDensity, 0.5) * 0.95 : 0.02;
-      
-      const xRangeStart = Math.round((x) * maxTime / xBuckets);
-      const xRangeEnd = Math.round((x+1) * maxTime / xBuckets);
-      const yRangeStart = Math.round((y) * maxCount / yBuckets);
-      const yRangeEnd = Math.round((y+1) * maxCount / yBuckets);
-      
-      const tooltipText = `Time: ${xRangeStart}ms ~ ${xRangeEnd}ms<br/>Count: ${yRangeStart} ~ ${yRangeEnd}<br/>Points: ${density}`;
-      html += `<div class="overall-cell" style="background-color: rgba(34, 197, 94, ${opacity})" onmouseover="showHeatmapTooltip(event, '${tooltipText}')" onmouseout="hideHeatmapTooltip()"></div>`;
-    }
-  }
-  html += '</div></div>';
-
-  // X-Axis
-  html += `
-    <div class="overall-x-axis">
-      <span>0</span>
-      <span>${formatNum(xMid)}</span>
-      <span>${formatNum(maxTime)}</span>
-    </div>
-  `;
-
-  html += '</div>';
-
-  container.innerHTML = html;
+  // Y-Axis Median Label
+  svg.append("text")
+    .attr("x", -10)
+    .attr("y", height / 2)
+    .attr("class", "quadrant-label")
+    .attr("text-anchor", "end")
+    .attr("alignment-baseline", "middle")
+    .text(formatNum(medianY));
 }
 
 // Ensure a single global tooltip exists
