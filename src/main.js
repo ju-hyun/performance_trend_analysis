@@ -15,6 +15,11 @@ const MONTH_COLORS = [
 let mainChartInstance = null;
 let currentChartType = 'line';
 let currentMetricData = [];
+let yearlyData = {
+  service_time: [],
+  service_rate: [],
+  concurrent_user: []
+};
 
 // Chart Selection State
 let selectedStartMonth = null;
@@ -161,39 +166,55 @@ async function loadData() {
 
   try {
     const today = new Date();
-    const fetchPromises = [];
 
-    // Main Chart: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
+    // Main Chart & Summary Metrics: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
+    const metricsToFetch = Array.from(new Set([metrics, 'service_time', 'service_rate', 'concurrent_user']));
+    const fetchPromisesMap = {};
+    metricsToFetch.forEach(m => fetchPromisesMap[m] = []);
+
     for (let i = 11; i >= 0; i--) {
       const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
       // API end_time is exclusive, so use the 1st day of the next month instead of the 0th day (last day of current month)
       const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
-      fetchPromises.push(
-        fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, metrics)
-          .catch(err => {
-            console.warn(`Failed to fetch partially for ${formatDateParam(monthStart)}`, err);
-            return [];
-          })
-      );
+      
+      metricsToFetch.forEach(m => {
+        fetchPromisesMap[m].push(
+          fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, m)
+            .catch(err => {
+              console.warn(`Failed to fetch partially for ${formatDateParam(monthStart)} metric ${m}`, err);
+              return [];
+            })
+        );
+      });
     }
 
-    const results = await Promise.all(fetchPromises);
+    const results = {};
+    for (const m of metricsToFetch) {
+      results[m] = await Promise.all(fetchPromisesMap[m]);
+    }
 
-    // 병합 및 시간순 정렬
-    let metricData = [];
-    results.forEach(res => { metricData.push(...res); });
-    metricData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    // 병합 및 시간순 정렬 및 중복 제거
+    const processResults = (resArray) => {
+      let metricData = [];
+      resArray.forEach(res => { metricData.push(...res); });
+      metricData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-    const uniqueData = [];
-    const timeSet = new Set();
-    metricData.forEach(item => {
-      if (!timeSet.has(item.time)) {
-        timeSet.add(item.time);
-        uniqueData.push(item);
-      }
+      const uniqueData = [];
+      const timeSet = new Set();
+      metricData.forEach(item => {
+        if (!timeSet.has(item.time)) {
+          timeSet.add(item.time);
+          uniqueData.push(item);
+        }
+      });
+      return uniqueData;
+    };
+
+    metricsToFetch.forEach(m => {
+      yearlyData[m] = processResults(results[m]);
     });
 
-    currentMetricData = uniqueData;
+    currentMetricData = yearlyData[metrics];
 
     // Update UI Elements for Chart
     document.getElementById('chartTitle').textContent = metricsName;
@@ -210,7 +231,7 @@ async function loadData() {
     if (rangeDisplay) rangeDisplay.textContent = '전체 (1년)';
 
     // Update Summary Cards
-    updateSummaryCardsPartial(metrics, currentMetricData);
+    updateSummaryCardsPartial(0, currentMetricData.length - 1);
 
     // Heatmaps Data Fetching
     // We can rely on the selection changed handler to load heatmaps for the default 1-year view
@@ -788,7 +809,7 @@ async function handleChartSelectionChanged() {
   if (!selectedStartMonth || !selectedEndMonth) {
     rangeDisplay.textContent = '전체 (1년)';
     // Reset to full data
-    updateSummaryCardsPartial(metrics, currentMetricData);
+    updateSummaryCardsPartial(0, currentMetricData.length - 1);
     
     // Fetch full data bounds from currentMetricData
     if (currentMetricData && currentMetricData.length > 0) {
@@ -872,8 +893,7 @@ async function handleChartSelectionChanged() {
     rangeDisplay.innerHTML = `${formatYMD(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMD(endStr)}`;
 
     // 2. Filter data for Summary Cards
-    const filteredData = currentMetricData.slice(startIdx, endIdx + 1);
-    updateSummaryCardsPartial(metrics, filteredData);
+    updateSummaryCardsPartial(startIdx, endIdx);
 
     // 3. Reload Heatmaps with Precise Date Range
     // Create actual Date objects for the start and end of the exact data bounds
@@ -1269,15 +1289,46 @@ function updateFooterHoverStats(monthStr) {
   // No longer used for DOM footer - stats are rendered directly in chart canvas
 }
 
-function updateSummaryCardsPartial(metrics, data) {
-  // Averages
-  const calcAvg = data => data.length ? data.reduce((s, d) => s + d.value, 0) / data.length : 0;
-  const avg = calcAvg(data);
+function updateSummaryCardsPartial(startIdx, endIdx) {
+  if (startIdx < 0 || endIdx < 0 || yearlyData['service_time'].length === 0) {
+    document.getElementById('peakDate').textContent = '-';
+    document.getElementById('avgResponseTime').innerHTML = `0 <span class="unit">ms</span>`;
+    document.getElementById('avgTps').textContent = '0';
+    document.getElementById('avgConcurrentUsers').textContent = '0';
+    return;
+  }
 
-  // Peak Date (Based on Max selected metric)
-  if (data.length > 0) {
-    let maxEntry = data[0];
-    data.forEach(entry => {
+  const today = new Date();
+  const todayStr = today.getFullYear() + 
+                   String(today.getMonth() + 1).padStart(2, '0') + 
+                   String(today.getDate()).padStart(2, '0');
+
+  const calcAvg = data => {
+    const validData = data.filter(d => 
+      d.time <= todayStr && 
+      d.value !== 0 && d.value !== null && d.value !== undefined
+    );
+    return validData.length ? validData.reduce((s, d) => s + d.value, 0) / validData.length : 0;
+  };
+  
+  const sliceData = (metricKey) => {
+    // If the selected metric (e.g. main chart) has different length than the rest, fallback to full length of that metric
+    const arr = yearlyData[metricKey];
+    if (!arr || arr.length === 0) return [];
+    // Ensure bounds
+    const s = Math.max(0, startIdx);
+    const e = Math.min(arr.length - 1, endIdx);
+    return arr.slice(s, e + 1);
+  };
+
+  const stData = sliceData('service_time');
+  const srData = sliceData('service_rate');
+  const cuData = sliceData('concurrent_user');
+
+  // Peak Date (Based on Max response time as a standard indicator for peak, or max selected metric if preferred. Here using service_time)
+  if (stData.length > 0) {
+    let maxEntry = stData[0];
+    stData.forEach(entry => {
       if (entry.value > maxEntry.value) maxEntry = entry;
     });
     document.getElementById('peakDate').textContent = parseDateString(maxEntry.time, true);
@@ -1285,18 +1336,13 @@ function updateSummaryCardsPartial(metrics, data) {
     document.getElementById('peakDate').textContent = '-';
   }
 
-  // Reset all to 0 or - first
-  document.getElementById('avgResponseTime').innerHTML = `0 <span class="unit">ms</span>`;
-  document.getElementById('avgTps').textContent = '0';
-  document.getElementById('avgConcurrentUsers').textContent = '0';
+  const avgST = calcAvg(stData);
+  const avgSR = calcAvg(srData);
+  const avgCU = calcAvg(cuData);
 
-  if (metrics === 'service_time') {
-    document.getElementById('avgResponseTime').innerHTML = `${Math.round(avg).toLocaleString()} <span class="unit">ms</span>`;
-  } else if (metrics === 'service_rate') {
-    document.getElementById('avgTps').textContent = avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  } else if (metrics === 'concurrent_user') {
-    document.getElementById('avgConcurrentUsers').textContent = Math.round(avg).toLocaleString();
-  }
+  document.getElementById('avgResponseTime').innerHTML = `${Math.round(avgST).toLocaleString()} <span class="unit">ms</span>`;
+  document.getElementById('avgTps').textContent = avgSR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
 }
 
 // Utilities
@@ -1332,21 +1378,20 @@ function mockDataOnFailPartial(metrics, metricsName) {
 
   const mockDates = ["20260201", "20260202", "20260203", "20260204", "20260205", "20260206", "20260207", "20260208", "20260209", "20260210"];
 
-  let mockData = [];
-  if (metrics === 'service_time') {
-    mockData = mockDates.map(d => ({ time: d, value: 4000 + Math.random() * 1500 }));
-  } else if (metrics === 'service_rate') {
-    mockData = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 4 }));
-  } else {
-    mockData = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 150 }));
+  yearlyData['service_time'] = mockDates.map(d => ({ time: d, value: 4000 + Math.random() * 1500 }));
+  yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 4 }));
+  yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 150 }));
+  
+  if (!yearlyData[metrics]) {
+    yearlyData[metrics] = mockDates.map(d => ({ time: d, value: 50 + Math.random() * 150 }));
   }
 
   document.getElementById('chartTitle').textContent = metricsName;
 
-  currentMetricData = mockData; // Save for toggle logic
+  currentMetricData = yearlyData[metrics]; // Save for toggle logic
 
-  updateChart('mainChart', metricsName, mockData, '#22c55e', mainChartInstance, (instance) => mainChartInstance = instance);
-  updateSummaryCardsPartial(metrics, mockData);
+  updateChart('mainChart', metricsName, currentMetricData, '#22c55e', mainChartInstance, (instance) => mainChartInstance = instance);
+  updateSummaryCardsPartial(0, currentMetricData.length - 1);
 
   // Mock Heatmap Data
   const heatmapMockData = [];
