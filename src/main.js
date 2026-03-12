@@ -779,9 +779,9 @@ function renderDayHourHeatmap(data) {
   
   if (legendGoodText && legendWarningText && legendDangerText) {
     if (allAverages.length > 0) {
-      legendGoodText.textContent = `양호 (≤ ${Math.round(goodThreshold)}ms)`;
-      legendWarningText.textContent = `주의 (≤ ${Math.round(warningThreshold)}ms)`;
-      legendDangerText.textContent = `나쁨 (> ${Math.round(warningThreshold)}ms)`;
+      legendGoodText.innerHTML = `양호<br/><span style="font-size: 0.65rem; color: #94a3b8;">(≤ ${Math.round(goodThreshold)}ms)</span>`;
+      legendWarningText.innerHTML = `주의<br/><span style="font-size: 0.65rem; color: #94a3b8;">(≤ ${Math.round(warningThreshold)}ms)</span>`;
+      legendDangerText.innerHTML = `나쁨<br/><span style="font-size: 0.65rem; color: #94a3b8;">(> ${Math.round(warningThreshold)}ms)</span>`;
     } else {
       legendGoodText.textContent = '양호';
       legendWarningText.textContent = '주의';
@@ -907,9 +907,9 @@ function renderOverallHeatmap(data) {
   const maxBinLength = d3.max(bins, d => d.length);
 
   // Define a color scale mapping density to green opacity
-  // Non-linear mapping using square root for better contrast with sparse data
+  // Non-linear mapping using square root for better contrast with sparse data, but using a darker base.
   const colorScale = d3.scaleSequential(
-    (t) => `rgba(34, 197, 94, ${0.1 + (Math.pow(t, 0.5) * 0.9)})`
+    (t) => `rgba(34, 197, 94, ${Math.min(0.3 + (Math.pow(t, 0.4) * 0.7), 1)})`
   ).domain([1, maxBinLength || 1]);
 
   // 6. Draw the 4-Quadrant Axes (Centered on Median)
@@ -940,10 +940,16 @@ function renderOverallHeatmap(data) {
     .attr("stroke-width", "0.5")
     .on("mouseover", function(event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
-      // Find average properties of the bin for the tooltip
-      const avgTime = d3.mean(d, p => p.responseTime);
-      const avgCount = d3.mean(d, p => p.count);
-      const tooltipText = `Time: ~${Math.round(avgTime)}ms<br/>Count: ~${Math.round(avgCount)}<br/>Points: ${d.length}`;
+      // Find min ~ max ranges of the bin for the tooltip
+      const minTime = d3.min(d, p => p.responseTime);
+      const maxTime = d3.max(d, p => p.responseTime);
+      const minCount = d3.min(d, p => p.count);
+      const maxCount = d3.max(d, p => p.count);
+      
+      const timeRange = minTime === maxTime ? `${Math.round(minTime)}` : `${Math.round(minTime)} ~ ${Math.round(maxTime)}`;
+      const countRange = minCount === maxCount ? `${Math.round(minCount)}` : `${Math.round(minCount)} ~ ${Math.round(maxCount)}`;
+      
+      const tooltipText = `Time: ${timeRange} ms<br/>Count: ${countRange}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
     .on("mouseout", function() {

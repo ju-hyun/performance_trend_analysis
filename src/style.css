@@ -587,10 +587,10 @@ body {
   color: var(--text-secondary); 
   font-weight: 500;
   text-align: right;
-  padding-right: 16px;
+  padding-right: 48px; /* Further increased spacing */
   white-space: nowrap;
   cursor: default;
-  font-family: inherit;
+  font-family: "JetBrains Mono", Consolas, "Courier New", monospace; /* Monospace font override */
   border: none !important;
   background-color: transparent !important;
 }
