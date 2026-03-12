@@ -580,18 +580,7 @@ body {
   filter: brightness(0.95) saturate(1.2);
 }
 
-/* Vertical highlighting line across the column */
-.heatmap-table td:hover::after {
-  content: '';
-  position: absolute;
-  top: -1000px; /* Stretch up */
-  bottom: -1000px; /* Stretch down */
-  left: 50%;
-  width: 1px;
-  background-color: rgba(0, 0, 0, 0.1);
-  pointer-events: none; /* Ignore mouse over the line */
-  z-index: -1;
-}
+
 
 .cell-label {
   font-size: 0.8rem;
