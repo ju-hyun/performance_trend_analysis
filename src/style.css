@@ -23,7 +23,7 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: "Pretendard JP Variable", "Pretendard JP", Pretendard, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
@@ -583,9 +583,10 @@ body {
   color: #334155; /* Slate 700 */
   font-weight: 600;
   text-align: right;
-  padding-right: 12px;
+  padding-right: 20px; /* Increased spacing between label and map */
   white-space: nowrap;
   cursor: default;
+  font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace; /* Use monospace font for labels */
 }
 
 .hover-value {

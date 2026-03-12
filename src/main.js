@@ -26,7 +26,7 @@ const searchBtn = document.getElementById('searchBtn');
 let datePicker = null;
 
 // Configure Chart.js global defaults
-Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.family = '"Pretendard JP", sans-serif';
 Chart.defaults.color = "#64748b";
 Chart.defaults.scale.grid.color = "#f1f5f9";
 Chart.defaults.plugins.tooltip.backgroundColor = "rgba(30, 41, 59, 0.9)";
