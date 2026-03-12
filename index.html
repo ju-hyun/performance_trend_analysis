@@ -55,22 +55,18 @@
         <div class="summary-card">
           <h3>기간 피크일</h3>
           <div class="summary-value" id="peakDate">-</div>
-          <div class="summary-label">최대 호출수 기준</div>
         </div>
         <div class="summary-card">
           <h3>평균 응답시간</h3>
           <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
-          <div class="summary-label">조회 기간 평균</div>
         </div>
         <div class="summary-card">
           <h3>평균 TPS</h3>
           <div class="summary-value" id="avgTps">0</div>
-          <div class="summary-label">조회 기간 평균</div>
         </div>
         <div class="summary-card">
           <h3>평균 동시사용자</h3>
           <div class="summary-value" id="avgConcurrentUsers">0</div>
-          <div class="summary-label">조회 기간 평균</div>
         </div>
       </section>
 
@@ -125,8 +121,10 @@
             <h3>요일 x 시간대별 응답시간</h3>
             <div class="heatmap-legend">
               <span class="legend-item"><span class="status-box good"></span><span id="legendGoodText">양호</span></span>
-              <span class="legend-item"><span class="status-box warning"></span><span id="legendWarningText">주의</span></span>
-              <span class="legend-item"><span class="status-box danger"></span><span id="legendDangerText">나쁨</span></span>
+              <span class="legend-item"><span class="status-box warning"></span><span
+                  id="legendWarningText">주의</span></span>
+              <span class="legend-item"><span class="status-box danger"></span><span
+                  id="legendDangerText">나쁨</span></span>
             </div>
           </div>
           <div class="heatmap-container" id="dayHourHeatmap">
