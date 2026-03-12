@@ -817,7 +817,8 @@ function renderOverallHeatmap(data) {
   for (let y = yBuckets - 1; y >= 0; y--) {
     for (let x = 0; x < xBuckets; x++) {
       const density = grid[y][x];
-      const opacity = density > 0 ? 0.1 + (density / maxDensity) * 0.9 : 0.05;
+      // opacity: 0 -> 0.02 (very faint), >0 -> scales from 0.2 to 1.0
+      const opacity = density > 0 ? 0.2 + (density / maxDensity) * 0.8 : 0.02;
       
       const xRangeStart = Math.round((x) * maxTime / xBuckets);
       const xRangeEnd = Math.round((x+1) * maxTime / xBuckets);
