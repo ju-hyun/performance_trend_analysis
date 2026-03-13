@@ -1057,9 +1057,9 @@ function renderDayHourHeatmap(data) {
   
   if (legendGoodText && legendWarningText && legendDangerText) {
     if (allAverages.length > 0) {
-      legendGoodText.innerHTML = `양호<br/><span style="font-size: 0.65rem; color: #94a3b8;">(≤ ${Math.round(goodThreshold)}ms)</span>`;
-      legendWarningText.innerHTML = `주의<br/><span style="font-size: 0.65rem; color: #94a3b8;">(≤ ${Math.round(warningThreshold)}ms)</span>`;
-      legendDangerText.innerHTML = `나쁨<br/><span style="font-size: 0.65rem; color: #94a3b8;">(> ${Math.round(warningThreshold)}ms)</span>`;
+      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(goodThreshold)}ms)</span>`;
+      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(warningThreshold)}ms)</span>`;
+      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${Math.round(warningThreshold)}ms)</span>`;
     } else {
       legendGoodText.textContent = '양호';
       legendWarningText.textContent = '주의';
