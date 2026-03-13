@@ -1471,7 +1471,6 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
   document.getElementById('avgHits').textContent = Math.round(avgSC).toLocaleString();
   document.getElementById('avgSysCpu').textContent = `${Math.round(avgSysCpu)}%`;
-  document.getElementById('avgMaxSysCpu').textContent = `${Math.round(avgMaxSysCpu)}%`;
   document.getElementById('avgHeapUsage').textContent = `${Math.round(avgHeapUsage)}%`;
 }
 
