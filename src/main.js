@@ -56,6 +56,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
 
+  function updateSummaryCardsDisabledState() {
+    const isInstanceSelected = !!instanceSelect.value;
+    const cpuCard = document.getElementById('avgSysCpu').closest('.summary-card');
+    const memCard = document.getElementById('avgHeapUsage').closest('.summary-card');
+
+    if (cpuCard && memCard) {
+      if (isInstanceSelected) {
+        cpuCard.classList.remove('disabled');
+        memCard.classList.remove('disabled');
+      } else {
+        cpuCard.classList.add('disabled');
+        memCard.classList.add('disabled');
+      }
+    }
+  }
+
+  updateSummaryCardsDisabledState();
+
   // Bind events
   searchBtn.addEventListener('click', loadData);
   domainSelect.addEventListener('change', async (e) => {
@@ -63,23 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target.value) {
       await loadInstances(e.target.value);
     }
-  });
-
-  instanceSelect.addEventListener('change', () => {
-    const isInstanceSelected = !!instanceSelect.value;
-    if (isInstanceSelected) {
-      btnSysCpu.classList.remove('hidden');
-      btnHeapUsage.classList.remove('hidden');
-    } else {
-      btnSysCpu.classList.add('hidden');
-      btnHeapUsage.classList.add('hidden');
-
-      // If active metric is hidden, switch to response time
-      if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
-        const defaultBtn = document.querySelector('.metric-btn[data-metric="service_time"]');
-        if (defaultBtn) defaultBtn.click();
-      }
-    }
+    updateSummaryCardsDisabledState();
   });
 
   // Bind metric toggle buttons
@@ -101,6 +103,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         handleChartSelectionChanged();
       }
     });
+  });
+
+  instanceSelect.addEventListener('change', () => {
+    const isInstanceSelected = !!instanceSelect.value;
+    if (isInstanceSelected) {
+      btnSysCpu.classList.remove('hidden');
+      btnHeapUsage.classList.remove('hidden');
+    } else {
+      btnSysCpu.classList.add('hidden');
+      btnHeapUsage.classList.add('hidden');
+
+      // If active metric is hidden, switch to response time
+      if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
+        const defaultBtn = document.querySelector('.metric-btn[data-metric="service_time"]');
+        if (defaultBtn) defaultBtn.click();
+      }
+    }
+    updateSummaryCardsDisabledState();
+    handleChartSelectionChanged(); // Refresh data view
   });
 
   // Bind chart type toggles
@@ -641,7 +662,7 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
       type: 'line', // Always line
       data: maxCpuData,
       borderWidth: 2,
-      borderColor: '#e3556ca1', // Rose Red
+      borderColor: '#ef9eaba1', // Rose Red
       backgroundColor: 'transparent',
       pointRadius: 0,
       tension: 0.4, // Smooth curve
@@ -1480,8 +1501,9 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   document.getElementById('avgTps').textContent = avgSR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
   document.getElementById('avgHits').textContent = Math.round(avgSC).toLocaleString();
-  document.getElementById('avgSysCpu').textContent = `${Math.round(avgSysCpu)}%`;
-  document.getElementById('avgHeapUsage').textContent = `${Math.round(avgHeapUsage)}%`;
+  const isInstanceSelected = !!(document.getElementById('instanceSelect').value);
+  document.getElementById('avgSysCpu').textContent = isInstanceSelected ? `${Math.round(avgSysCpu)}%` : '-';
+  document.getElementById('avgHeapUsage').textContent = isInstanceSelected ? `${Math.round(avgHeapUsage)}%` : '-';
 }
 
 // Utilities
