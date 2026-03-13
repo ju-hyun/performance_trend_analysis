@@ -33,6 +33,9 @@ let isSelecting = false;
 let dragStartX = null;
 let dragCurrentX = null;
 
+// Global metric thresholds for heatmaps (persisted across period selections)
+let metricThresholds = {};
+
 // DOM Elements
 const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
@@ -271,6 +274,9 @@ async function loadData() {
 
   searchBtn.disabled = true;
   searchBtn.textContent = '조회 중...';
+
+  // Reset thresholds when a new primary search is performed
+  metricThresholds = {};
 
   try {
     const today = new Date();
@@ -1149,12 +1155,14 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     // API returns 24 items per day in chronological order
     items.forEach((item, posInDay) => {
       const hour = posInDay % 24;
-      dayHourMap[dayIdx][hour].sum += item.value; // Changed from item.responseTime to item.value
-      dayHourMap[dayIdx][hour].count++;
+      if (item.count > 0) {
+        dayHourMap[dayIdx][hour].sum += item.value; 
+        dayHourMap[dayIdx][hour].count++;
+      }
     });
   });
 
-  // Calculate dynamic thresholds based on Median and IQR
+  // Calculate average for each day-hour slot
   const allAverages = [];
   dayHourMap.forEach(day => {
     day.forEach(hour => {
@@ -1164,34 +1172,42 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     });
   });
 
-  let goodThreshold = 100;
-  let warningThreshold = 300;
+  // Calculate dynamic thresholds if not already stored for the current metric
+  let goodThreshold, warningThreshold;
 
-  if (allAverages.length > 0) {
-    allAverages.sort((a, b) => a - b);
-    const percentile = (arr, p) => {
-      if (arr.length === 0) return 0;
-      if (typeof p !== 'number') throw new TypeError('p must be a number');
-      if (p <= 0) return arr[0];
-      if (p >= 1) return arr[arr.length - 1];
-      const index = (arr.length - 1) * p;
-      const lower = Math.floor(index);
-      const upper = lower + 1;
-      const weight = index % 1;
-      if (upper >= arr.length) return arr[lower];
-      return arr[lower] * (1 - weight) + arr[upper] * weight;
-    };
+  if (metricThresholds[metric]) {
+    goodThreshold = metricThresholds[metric].good;
+    warningThreshold = metricThresholds[metric].warning;
+  } else {
+    // Default fallback
+    goodThreshold = 100;
+    warningThreshold = 300;
 
-    const q1 = percentile(allAverages, 0.25);
-    const q3 = percentile(allAverages, 0.75);
-    const iqr = q3 - q1;
+    if (allAverages.length > 0) {
+      allAverages.sort((a, b) => a - b);
+      const percentile = (arr, p) => {
+        if (arr.length === 0) return 0;
+        if (typeof p !== 'number') throw new TypeError('p must be a number');
+        if (p <= 0) return arr[0];
+        if (p >= 1) return arr[arr.length - 1];
+        const index = (arr.length - 1) * p;
+        const lower = Math.floor(index);
+        const upper = lower + 1;
+        const weight = index % 1;
+        if (upper >= arr.length) return arr[lower];
+        return arr[lower] * (1 - weight) + arr[upper] * weight;
+      };
 
-    // Redefine thresholds statistically
-    // Good: <= Q3 (Upper quartile - 75% of data is good)
-    // Warning: <= Q3 + 1.5 * IQR (Statistical inner fence for mild outliers)
-    // Bad: > Warning (Statistical outer fence/outliers)
-    goodThreshold = q3;
-    warningThreshold = q3 + (1.5 * iqr);
+      const q1 = percentile(allAverages, 0.25);
+      const q3 = percentile(allAverages, 0.75);
+      const iqr = q3 - q1;
+
+      goodThreshold = q3;
+      warningThreshold = q3 + (1.5 * iqr);
+
+      // Cache these thresholds so they persist during chart selections (filtering period)
+      metricThresholds[metric] = { good: goodThreshold, warning: warningThreshold };
+    }
   }
 
   // Update Legend with calculated thresholds
