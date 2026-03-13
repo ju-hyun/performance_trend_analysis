@@ -1307,23 +1307,22 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // 4. Scales mapping (0 -> Median -> Max) to (0 -> Width/2 -> Width)
-  // This physically forces the Median to be exactly in the center of the chart
+  // Swapped: X is now Hits, Y is now Metric Value
   const xScale = d3.scaleLinear()
-    .domain([0, medianX, maxX])
+    .domain([0, medianY, maxY]) // medianY is counts
     .range([0, width / 2, width])
     .clamp(true);
 
   const yScale = d3.scaleLinear()
-    .domain([0, medianY, maxY])
+    .domain([0, medianX, maxX]) // medianX is values
     .range([height, height / 2, 0])
     .clamp(true);
 
   // 5. Hexbin configuration
-  // The radius determines the size of the hexagons
   const radius = 12;
   const hexbin = d3.hexbin()
-    .x(d => xScale(d.value)) // Changed from d.responseTime to d.value
-    .y(d => yScale(d.count))
+    .x(d => xScale(d.count))
+    .y(d => yScale(d.value))
     .radius(radius)
     .extent([[0, 0], [width, height]]);
 
@@ -1375,7 +1374,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
 
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const labelName = isHitSelected ? 'Res.Time' : 'Value';
-      const tooltipText = `${labelName}: ${timeRange} ${unit}<br/>Hits: ${countRange}<br/>Points: ${d.length}`;
+      const tooltipText = `Hits: ${countRange}<br/>${labelName}: ${timeRange} ${unit}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
     .on("mouseout", function () {
@@ -1389,22 +1388,23 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     return Math.round(num).toString();
   };
 
-  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+  // X-Axis Median Label (Hits)
   svg.append("text")
     .attr("x", width / 2)
     .attr("y", height + 25)
     .attr("class", "quadrant-label")
     .attr("text-anchor", "middle")
-    .text(formatNum(medianX) + unit);
+    .text(formatNum(medianY) + ' Hits');
 
-  // Y-Axis Median Label
+  // Y-Axis Median Label (Value)
+  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
   svg.append("text")
     .attr("x", -10)
     .attr("y", height / 2)
     .attr("class", "quadrant-label")
     .attr("text-anchor", "end")
     .attr("alignment-baseline", "middle")
-    .text(formatNum(medianY));
+    .text(formatNum(medianX) + unit);
 }
 
 // Ensure a single global tooltip exists
