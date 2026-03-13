@@ -44,18 +44,19 @@ Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 4;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load domains first
-  await loadDomains();
-
-  // Initial load
+  // Initial load: Load domains first, then data
+  const domainsLoaded = await loadDomains();
+  
+  // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
 
   // Bind events
   searchBtn.addEventListener('click', loadData);
   domainSelect.addEventListener('change', async (e) => {
-    await loadInstances(e.target.value);
-    // Optionally trigger search automatically when domain changes:
-    // loadData();
+    // Attempt to load instances whenever a domain is selected
+    if (e.target.value) {
+      await loadInstances(e.target.value);
+    }
   });
 
   // Bind chart type toggles
@@ -85,11 +86,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadDomains() {
-  try {
-    const url = new URL(DOMAIN_API_BASE, window.location.origin);
-    url.searchParams.append('token', TOKEN);
+  const url = new URL(DOMAIN_API_BASE, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  const urlString = url.toString();
 
-    const response = await fetch(url.toString(), {
+  try {
+    const response = await fetch(urlString, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
@@ -111,24 +113,52 @@ async function loadDomains() {
       domainSelect.appendChild(option);
     });
 
-  } catch (error) {
-    console.error('Failed to load domains:', error);
-    domainSelect.innerHTML = '<option value="1000">기본 도메인(로드 실패)</option>';
-  }
+    // Load instances for the initially selected domain
+    if (domainSelect.value) {
+      await loadInstances(domainSelect.value);
+    }
+    return true;
 
-  // Load instances for the initially selected domain
-  if (domainSelect.value) {
-    await loadInstances(domainSelect.value);
+  } catch (error) {
+    console.error('Failed to load domains. URL:', urlString, '\nError:', error);
+    if (error.name === 'TypeError') {
+      console.warn('Network error or CORS issue suspected. Check if the API server is reachable or if the request is being blocked.');
+    }
+    
+    // Fallback to mock domains
+    const mockDomains = [
+      { domainId: '1000', name: 'Sample Domain A (Mock)' },
+      { domainId: '1001', name: 'Sample Domain B (Mock)' }
+    ];
+    
+    domainSelect.innerHTML = '';
+    mockDomains.forEach(domain => {
+      const option = document.createElement('option');
+      option.value = domain.domainId;
+      option.textContent = domain.name;
+      domainSelect.appendChild(option);
+    });
+
+    if (domainSelect.value) {
+      await loadInstances(domainSelect.value);
+    }
+    return false;
   }
 }
 
 async function loadInstances(domainId) {
-  try {
-    const url = new URL(INSTANCE_API_BASE, window.location.origin);
-    url.searchParams.append('token', TOKEN);
-    url.searchParams.append('domain_id', domainId);
+  if (!domainId) {
+    instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
+    return;
+  }
 
-    const response = await fetch(url.toString(), {
+  const url = new URL(INSTANCE_API_BASE, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  url.searchParams.append('domain_id', domainId);
+  const urlString = url.toString();
+
+  try {
+    const response = await fetch(urlString, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
@@ -151,8 +181,21 @@ async function loadInstances(domainId) {
     });
 
   } catch (error) {
-    console.error(`Failed to load instances for domain ${domainId}:`, error);
+    console.error(`Failed to load instances for domain ${domainId}. URL: ${urlString}`, error);
+    
+    // Fallback to mock instances
+    const mockInstances = [
+      { instanceId: '1', name: `Instance-${domainId}-1` },
+      { instanceId: '2', name: `Instance-${domainId}-2` }
+    ];
+    
     instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
+    mockInstances.forEach(instance => {
+      const option = document.createElement('option');
+      option.value = instance.instanceId;
+      option.textContent = instance.name;
+      instanceSelect.appendChild(option);
+    });
   }
 }
 
@@ -278,7 +321,10 @@ async function fetchMetricData(domainId, instanceId, startTime, endTime, interva
     const data = await response.json();
     return data.result || [];
   } catch (error) {
-    console.warn(`API fetch for ${metrics} failed. Fallback to mock data.`, error);
+    console.warn(`API fetch for ${metrics} failed. URL: ${url.toString()}`, error);
+    if (error.name === 'TypeError') {
+      console.warn('Network error or CORS issue. If this is a local development environment, ensure the proxy is correctly configured.');
+    }
     throw error;
   }
 }
