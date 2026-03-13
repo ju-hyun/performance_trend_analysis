@@ -18,7 +18,8 @@ let currentMetricData = [];
 let yearlyData = {
   service_time: [],
   service_rate: [],
-  concurrent_user: []
+  concurrent_user: [],
+  service_count: []
 };
 
 // Chart Selection State
@@ -168,7 +169,7 @@ async function loadData() {
     const today = new Date();
 
     // Main Chart & Summary Metrics: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
-    const metricsToFetch = Array.from(new Set([metrics, 'service_time', 'service_rate', 'concurrent_user']));
+    const metricsToFetch = Array.from(new Set([metrics, 'service_time', 'service_rate', 'concurrent_user', 'service_count']));
     const fetchPromisesMap = {};
     metricsToFetch.forEach(m => fetchPromisesMap[m] = []);
 
@@ -1295,6 +1296,7 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
     document.getElementById('avgResponseTime').innerHTML = `0 <span class="unit">ms</span>`;
     document.getElementById('avgTps').textContent = '0';
     document.getElementById('avgConcurrentUsers').textContent = '0';
+    document.getElementById('avgHits').textContent = '0';
     return;
   }
 
@@ -1324,6 +1326,7 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const stData = sliceData('service_time');
   const srData = sliceData('service_rate');
   const cuData = sliceData('concurrent_user');
+  const scData = sliceData('service_count');
 
   // Peak Date (Based on Max response time as a standard indicator for peak, or max selected metric if preferred. Here using service_time)
   if (stData.length > 0) {
@@ -1339,10 +1342,12 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const avgST = calcAvg(stData);
   const avgSR = calcAvg(srData);
   const avgCU = calcAvg(cuData);
+  const avgSC = calcAvg(scData);
 
   document.getElementById('avgResponseTime').innerHTML = `${Math.round(avgST).toLocaleString()} <span class="unit">ms</span>`;
   document.getElementById('avgTps').textContent = avgSR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
+  document.getElementById('avgHits').textContent = Math.round(avgSC).toLocaleString();
 }
 
 // Utilities
@@ -1381,6 +1386,7 @@ function mockDataOnFailPartial(metrics, metricsName) {
   yearlyData['service_time'] = mockDates.map(d => ({ time: d, value: 4000 + Math.random() * 1500 }));
   yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 4 }));
   yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 150 }));
+  yearlyData['service_count'] = mockDates.map(d => ({ time: d, value: 5000 + Math.random() * 10000 }));
   
   if (!yearlyData[metrics]) {
     yearlyData[metrics] = mockDates.map(d => ({ time: d, value: 50 + Math.random() * 150 }));
