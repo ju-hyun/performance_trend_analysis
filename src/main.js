@@ -35,6 +35,7 @@ let dragCurrentX = null;
 
 // Global metric thresholds for heatmaps (persisted across period selections)
 let metricThresholds = {};
+let overallYThresholds = {};
 
 // DOM Elements
 const domainSelect = document.getElementById('domainSelect');
@@ -277,6 +278,7 @@ async function loadData() {
 
   // Reset thresholds when a new primary search is performed
   metricThresholds = {};
+  overallYThresholds = {};
 
   try {
     const today = new Date();
@@ -1293,23 +1295,31 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   container.innerHTML = ''; // Clear previous
 
   // 2. Calculate Medians (Central Axes)
-  const times = validData.map(d => d.value).sort((a, b) => a - b); // Changed from d.responseTime to d.value
+  // X-axis (Hits) is always dynamic based on current data
   const counts = validData.map(d => d.count).sort((a, b) => a - b);
-
   const d3Median = (arr) => {
     const mid = Math.floor(arr.length / 2);
     return arr.length % 2 !== 0 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
   };
+  const medianX = d3Median(counts); // X is now Hits
+  const maxX = Math.max(...counts, 1);
 
-  const medianX = d3Median(times);
-  const medianY = d3Median(counts);
-  const maxX = Math.max(...times, 100);
-  const maxY = Math.max(...counts, 1);
+  // Y-axis (Metric Value) is fixed based on 1-year data
+  let medianY, maxY;
+  if (overallYThresholds[metric]) {
+    medianY = overallYThresholds[metric].median;
+    maxY = overallYThresholds[metric].max;
+  } else {
+    const times = validData.map(d => d.value).sort((a, b) => a - b);
+    medianY = d3Median(times);
+    maxY = Math.max(...times, 100);
+    // Cache for this metric
+    overallYThresholds[metric] = { median: medianY, max: maxY };
+  }
 
   // 3. Setup SVG Canvas
   const margin = { top: 20, right: 20, bottom: 40, left: 50 };
   const containerWidth = container.clientWidth || 500;
-  // Use fixed height or responsive
   const containerHeight = Math.max(container.clientHeight, 350) || 350;
 
   const width = containerWidth - margin.left - margin.right;
@@ -1325,12 +1335,12 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // 4. Scales mapping (0 -> Median -> Max) to (0 -> Width/2 -> Width)
   // Swapped: X is now Hits, Y is now Metric Value
   const xScale = d3.scaleLinear()
-    .domain([0, medianY, maxY]) // medianY is counts
+    .domain([0, medianX, maxX]) // medianX is counts (dynamic)
     .range([0, width / 2, width])
     .clamp(true);
 
   const yScale = d3.scaleLinear()
-    .domain([0, medianX, maxX]) // medianX is values
+    .domain([0, medianY, maxY]) // medianY is metric value (fixed)
     .range([height, height / 2, 0])
     .clamp(true);
 
@@ -1410,7 +1420,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("y", height + 25)
     .attr("class", "quadrant-label")
     .attr("text-anchor", "middle")
-    .text(formatNum(medianY) + ' Hits');
+    .text(formatNum(medianX) + ' Hits');
 
   // Y-Axis Median Label (Value)
   const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
@@ -1420,7 +1430,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("class", "quadrant-label")
     .attr("text-anchor", "end")
     .attr("alignment-baseline", "middle")
-    .text(formatNum(medianX) + unit);
+    .text(formatNum(medianY) + unit);
 
   // Update Footer Label (External to SVG)
   const labelY = document.getElementById('overallHeatmapLabelY');
