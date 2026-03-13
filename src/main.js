@@ -23,7 +23,7 @@ let yearlyData = {
   heap_usage: [],
   max_sys_cpu: []
 };
- 
+
 let currentMetric = 'service_time';
 
 // Chart Selection State
@@ -52,7 +52,7 @@ Chart.defaults.plugins.tooltip.cornerRadius = 4;
 document.addEventListener('DOMContentLoaded', async () => {
   // Initial load: Load domains first, then data
   const domainsLoaded = await loadDomains();
-  
+
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
 
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       btnSysCpu.classList.add('hidden');
       btnHeapUsage.classList.add('hidden');
-      
+
       // If active metric is hidden, switch to response time
       if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
         const defaultBtn = document.querySelector('.metric-btn[data-metric="service_time"]');
@@ -89,20 +89,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetBtn = e.currentTarget;
       targetBtn.classList.add('active');
       currentMetric = targetBtn.dataset.metric;
- 
+
       const metricData = yearlyData[currentMetric];
       if (metricData && metricData.length > 0) {
         const metricDisplayName = targetBtn.textContent;
         updateChart('mainChart', metricDisplayName, metricData, '#22c55e', mainChartInstance, (instance) => {
           mainChartInstance = instance;
         });
-        
+
         // Update summary cards for the selected range if exists
         handleChartSelectionChanged();
       }
     });
   });
- 
+
   // Bind chart type toggles
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetBtn = e.currentTarget;
       targetBtn.classList.add('active');
       currentChartType = targetBtn.dataset.type;
- 
+
       const metricData = yearlyData[currentMetric];
       if (metricData && metricData.length > 0) {
         const metricDisplayName = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`).textContent;
@@ -170,13 +170,13 @@ async function loadDomains() {
     if (error.name === 'TypeError') {
       console.warn('Network error or CORS issue suspected. Check if the API server is reachable or if the request is being blocked.');
     }
-    
+
     // Fallback to mock domains
     const mockDomains = [
       { domainId: '1000', name: 'Sample Domain A (Mock)' },
       { domainId: '1001', name: 'Sample Domain B (Mock)' }
     ];
-    
+
     domainSelect.innerHTML = '';
     mockDomains.forEach(domain => {
       const option = document.createElement('option');
@@ -227,13 +227,13 @@ async function loadInstances(domainId) {
     });
   } catch (error) {
     console.error(`Failed to load instances for domain ${domainId}. URL: ${urlString}`, error);
-    
+
     // Fallback to mock instances
     const mockInstances = [
       { instanceId: '1', name: `Instance-${domainId}-1` },
       { instanceId: '2', name: `Instance-${domainId}-2` }
     ];
-    
+
     instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
@@ -263,7 +263,7 @@ async function loadData() {
       const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
       // API end_time is exclusive, so use the 1st day of the next month instead of the 0th day (last day of current month)
       const monthEnd = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
-      
+
       metricsToFetch.forEach(m => {
         fetchPromisesMap[m].push(
           fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, m)
@@ -300,11 +300,11 @@ async function loadData() {
     metricsToFetch.forEach(m => {
       yearlyData[m] = processResults(results[m]);
     });
- 
+
     // Update UI Elements for Chart
     const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
     const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
-    
+
     // Update main chart
     updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
       mainChartInstance = instance;
@@ -467,30 +467,30 @@ const selectionRangePlugin = {
     } else if (event.type === 'mouseup' || (event.type === 'mouseout' && isSelecting)) {
       if (isSelecting) {
         isSelecting = false;
-        
+
         // Calculate selected range based on pixel coordinates
         if (Math.abs(dragCurrentX - dragStartX) > 10) {
           // Drag selection
           const xAxis = chart.scales.x;
           let val1 = xAxis.getValueForPixel(dragStartX);
           let val2 = xAxis.getValueForPixel(dragCurrentX);
-          
+
           if (val1 > val2) {
             const temp = val1;
             val1 = val2;
             val2 = temp;
           }
-          
+
           let idx1 = Math.round(val1);
           let idx2 = Math.round(val2);
-          
+
           const maxIndex = chart.data.labels.length - 1;
           idx1 = Math.max(0, Math.min(idx1, maxIndex));
           idx2 = Math.max(0, Math.min(idx2, maxIndex));
-          
+
           selectedStartMonth = chart.data.labels[idx1].split('/')[0];
           selectedEndMonth = chart.data.labels[idx2].split('/')[0];
-          
+
           // Trigger data update
           handleChartSelectionChanged();
         } else {
@@ -498,10 +498,10 @@ const selectionRangePlugin = {
           const xAxis = chart.scales.x;
           let idx = Math.round(xAxis.getValueForPixel(event.x));
           const maxIndex = chart.data.labels.length - 1;
-          
+
           if (idx >= 0 && idx <= maxIndex) {
             const clickedMonth = chart.data.labels[idx].split('/')[0];
-            
+
             // Toggle off if clicking the already selected exactly
             if (selectedStartMonth === clickedMonth && selectedEndMonth === clickedMonth) {
               selectedStartMonth = null;
@@ -514,7 +514,7 @@ const selectionRangePlugin = {
             handleChartSelectionChanged();
           }
         }
-        
+
         args.changed = true;
       }
     }
@@ -533,13 +533,13 @@ const selectionRangePlugin = {
       ctx.fillRect(start, chartArea.top, width, chartArea.bottom - chartArea.top);
       ctx.restore();
     }
-    
+
     // Draw finalized selected months highlighting
     if (!isSelecting && selectedStartMonth && selectedEndMonth) {
       // Find start and end pixels for the selected months bounds
       let startPixel = null;
       let endPixel = null;
-      
+
       const getBoundaryX = (i) => {
         if (i === 0) return chartArea.left;
         if (i >= labels.length) return chartArea.right;
@@ -548,7 +548,7 @@ const selectionRangePlugin = {
 
       let currentMonth = labels[0].split('/')[0];
       let tStartIdx = 0;
-      
+
       for (let i = 1; i <= labels.length; i++) {
         const month = i < labels.length ? labels[i].split('/')[0] : null;
         if (month !== currentMonth) {
@@ -562,13 +562,13 @@ const selectionRangePlugin = {
           tStartIdx = i;
         }
       }
-      
+
       // Ensure start and end are ordered correctly in case of crossed year boundaries
       if (startPixel !== null && endPixel !== null) {
         if (startPixel > endPixel) {
-           const temp = startPixel;
-           startPixel = endPixel;
-           endPixel = temp;
+          const temp = startPixel;
+          startPixel = endPixel;
+          endPixel = temp;
         }
         ctx.save();
         ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; // Blue tint for selected range
@@ -603,16 +603,16 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
 
   // Compute month-by-month averages BEFORE creating/updating chart so afterDraw has data
   calculateMonthlyAverages(data, label);
- 
+
   const datasets = [];
-  
+
   // Primary Dataset
   const primaryDataset = {
     label: label,
     data: values,
     borderWidth: 2,
   };
- 
+
   if (currentChartType === 'line') {
     primaryDataset.fill = true;
     primaryDataset.tension = 0;
@@ -627,28 +627,34 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     primaryDataset.borderColor = ctx => getMonthColor(ctx, color, '');
   }
   datasets.push(primaryDataset);
- 
-  // Handle System CPU dual line (Avg + Max)
+
+  // Handle System CPU dual line (Avg + Max) - Force combo chart for visibility
   if (currentMetric === 'sys_cpu' && yearlyData['max_sys_cpu'].length > 0) {
+    // 1. Re-adjust Primary (Avg) style for CPU
+    primaryDataset.label = '평균 CPU';
+    primaryDataset.order = 2; // Behind max line
+
+    // 2. Add Max CPU as a forced Line
     const maxCpuData = yearlyData['max_sys_cpu'].map(item => item.value);
     const maxDataset = {
       label: '최대 CPU',
+      type: 'line', // Always line
       data: maxCpuData,
-      borderWidth: 1.5,
-      borderColor: '#ef4444',
+      borderWidth: 2,
+      borderColor: '#e3556ca1', // Rose Red
       backgroundColor: 'transparent',
       pointRadius: 0,
-      tension: 0,
-      borderDash: [5, 5] // Dotted line for max
+      tension: 0.4, // Smooth curve
+      order: 1 // In front
     };
     datasets.push(maxDataset);
   }
- 
+
   if (chartInstance && chartInstance.config.type !== currentChartType) {
     chartInstance.destroy();
     chartInstance = null;
   }
- 
+
   if (chartInstance) {
     chartInstance.data.labels = labels;
     chartInstance.data.datasets = datasets;
@@ -741,9 +747,9 @@ function calculateMonthlyAverages(data, label) {
 
   const monthData = {};
   const today = new Date();
-  const todayStr = today.getFullYear() + 
-                   String(today.getMonth() + 1).padStart(2, '0') + 
-                   String(today.getDate()).padStart(2, '0');
+  const todayStr = today.getFullYear() +
+    String(today.getMonth() + 1).padStart(2, '0') +
+    String(today.getDate()).padStart(2, '0');
 
   // Group data by month, but ONLY up to today for the current month/future
   data.forEach(item => {
@@ -762,7 +768,7 @@ function calculateMonthlyAverages(data, label) {
   data.forEach(item => {
     const lbl = parseDateString(item.time);
     if (typeof lbl !== 'string') return;
-    
+
     const m = lbl.split('/')[0];
     if (m !== lastM) {
       monthsInOrder.push(m);
@@ -777,10 +783,10 @@ function calculateMonthlyAverages(data, label) {
       monthlyAveragesCache[m] = { avg: 0, prevAvgMonth: idx > 0 ? monthsInOrder[idx - 1] : null };
       return;
     }
-    
+
     const arr = monthData[m];
     const avg = arr.reduce((acc, v) => acc + v, 0) / arr.length;
-    
+
     monthlyAveragesCache[m] = {
       avg: avg,
       prevAvgMonth: idx > 0 ? monthsInOrder[idx - 1] : null
@@ -802,7 +808,7 @@ function calculateMonthlyAverages(data, label) {
         const currentMonthData = monthData[m] || [];
         const currentMonthCount = currentMonthData.length;
         const prevMonthData = monthData[d.prevAvgMonth] || [];
-        
+
         if (currentMonthCount > 0 && prevMonthData.length > 0) {
           const prevMonthSlice = prevMonthData.slice(0, currentMonthCount);
           prevAvg = prevMonthSlice.reduce((acc, v) => acc + v, 0) / (prevMonthSlice.length || 1);
@@ -863,7 +869,7 @@ function updateChartStatsGrid(labels, chart) {
     // Wrapper's absolute left = stats-row.padding-left(20px) + stats-label.width(60px) = 80px
     // ChartArea.left is usually around 40-60px.
     // Let's use getBoundingClientRect for perfect precision or just offset it.
-    
+
     const wrapperRect = avgWrapper.getBoundingClientRect();
     const chartRect = chart.canvas.getBoundingClientRect();
     const xOffset = zone.centerX + (chartRect.left - wrapperRect.left);
@@ -872,7 +878,7 @@ function updateChartStatsGrid(labels, chart) {
     const avgItem = document.createElement('div');
     avgItem.className = 'stat-item';
     avgItem.style.left = `${xOffset}px`;
-    
+
     let avgText;
     const metricLabel = currentMetricLabelCache || '';
     if (metricLabel.includes('응답시간') || metricLabel.includes('Response Time')) {
@@ -916,7 +922,7 @@ async function handleChartSelectionChanged() {
   const metrics = currentMetric;
   const domainId = domainSelect.value;
   const instanceId = instanceSelect.value;
-  
+
   const currentMetricData = yearlyData[currentMetric] || [];
   let startIdx = -1;
   let endIdx = -1;
@@ -925,28 +931,28 @@ async function handleChartSelectionChanged() {
     rangeDisplay.textContent = '전체 (1년)';
     // Reset to full data
     updateSummaryCardsPartial(0, currentMetricData.length - 1);
-    
+
     // Fetch full data bounds from currentMetricData
     if (currentMetricData && currentMetricData.length > 0) {
       const startStr = currentMetricData[0].time;
       const endStr = currentMetricData[currentMetricData.length - 1].time;
-      
+
       const formatYMDLocal = (str) => {
-        const y = str.substring(0,4);
-        const m = str.substring(4,6);
-        const d = str.substring(6,8);
+        const y = str.substring(0, 4);
+        const m = str.substring(4, 6);
+        const d = str.substring(6, 8);
         return `${y}.${m}.${d}`;
       };
       rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
-      
-      const sYear = parseInt(startStr.substring(0,4), 10);
-      const sMonth = parseInt(startStr.substring(4,6), 10) - 1;
-      const sDay = parseInt(startStr.substring(6,8), 10);
-      
-      const eYear = parseInt(endStr.substring(0,4), 10);
-      const eMonth = parseInt(endStr.substring(4,6), 10) - 1;
-      const eDay = parseInt(endStr.substring(6,8), 10);
-      
+
+      const sYear = parseInt(startStr.substring(0, 4), 10);
+      const sMonth = parseInt(startStr.substring(4, 6), 10) - 1;
+      const sDay = parseInt(startStr.substring(6, 8), 10);
+
+      const eYear = parseInt(endStr.substring(0, 4), 10);
+      const eMonth = parseInt(endStr.substring(4, 6), 10) - 1;
+      const eDay = parseInt(endStr.substring(6, 8), 10);
+
       const exactStartDate = new Date(sYear, sMonth, sDay);
       const exactEndDate = new Date(eYear, eMonth, eDay);
 
@@ -958,12 +964,12 @@ async function handleChartSelectionChanged() {
   // Because selectedStartMonth/EndMonth could be out of order in the UI drag (already sorted in plugin)
   let tStartMonth = selectedStartMonth;
   let tEndMonth = selectedEndMonth;
-  
+
   // Use the already declared currentMetricData
-  
+
   // Find first occurrence of start month
   const labels = currentMetricData.map(item => parseDateString(item.time));
-  
+
   // Find first occurrence of start month
   for (let i = 0; i < labels.length; i++) {
     if (labels[i].startsWith(tStartMonth + '/')) {
@@ -971,7 +977,7 @@ async function handleChartSelectionChanged() {
       break;
     }
   }
-  
+
   // Find last occurrence of end month
   for (let i = labels.length - 1; i >= 0; i--) {
     if (labels[i].startsWith(tEndMonth + '/')) {
@@ -985,20 +991,20 @@ async function handleChartSelectionChanged() {
       const temp = startIdx;
       startIdx = endIdx;
       endIdx = temp;
-      
+
       const tTemp = tStartMonth;
       tStartMonth = tEndMonth;
       tEndMonth = tTemp;
     }
-    
+
     // 1. Update Display Text
     const startStr = currentMetricData[startIdx].time.substring(0, 8); // yyyymmdd
     const endStr = currentMetricData[endIdx].time.substring(0, 8);
-    
+
     const formatYMDLocal = (str) => {
-      const y = str.substring(0,4);
-      const m = str.substring(4,6);
-      const d = str.substring(6,8);
+      const y = str.substring(0, 4);
+      const m = str.substring(4, 6);
+      const d = str.substring(6, 8);
       return `${y}.${m}.${d}`;
     };
     rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
@@ -1008,14 +1014,14 @@ async function handleChartSelectionChanged() {
 
     // 3. Reload Heatmaps with Precise Date Range
     // Create actual Date objects for the start and end of the exact data bounds
-    const sYear = parseInt(startStr.substring(0,4), 10);
-    const sMonth = parseInt(startStr.substring(4,6), 10) - 1;
-    const sDay = parseInt(startStr.substring(6,8), 10);
-    
-    const eYear = parseInt(endStr.substring(0,4), 10);
-    const eMonth = parseInt(endStr.substring(4,6), 10) - 1;
-    const eDay = parseInt(endStr.substring(6,8), 10);
-    
+    const sYear = parseInt(startStr.substring(0, 4), 10);
+    const sMonth = parseInt(startStr.substring(4, 6), 10) - 1;
+    const sDay = parseInt(startStr.substring(6, 8), 10);
+
+    const eYear = parseInt(endStr.substring(0, 4), 10);
+    const eMonth = parseInt(endStr.substring(4, 6), 10) - 1;
+    const eDay = parseInt(endStr.substring(6, 8), 10);
+
     const exactStartDate = new Date(sYear, sMonth, sDay);
     const exactEndDate = new Date(eYear, eMonth, eDay);
 
@@ -1041,12 +1047,12 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
 
       const chunkStartStr = formatDateParam(currentStart);
       const chunkEndStr = formatDateParam(currentEnd);
- 
+
       // Determine what metric to fetch for heatmap value
       // Overall heatmap always uses Hit수 (service_count) on Y-axis
       // Day x Hour heatmap uses the selected metric on Z-axis (color)
       const metricToFetch = currentMetric === 'service_count' ? 'service_time' : currentMetric;
- 
+
       timePromises.push(
         fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, metricToFetch)
           .catch(err => { console.warn(`Heatmap ${metricToFetch} chunk failed`, err); return []; })
@@ -1078,7 +1084,7 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
         count: countItem ? countItem.value : 0
       };
     });
- 
+
     const isHitSelected = (currentMetric === 'service_count');
     renderDayHourHeatmap(combinedHeatmapData, isHitSelected, currentMetric);
     renderOverallHeatmap(combinedHeatmapData, isHitSelected, currentMetric);
@@ -1171,7 +1177,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   const legendGoodText = document.getElementById('legendGoodText');
   const legendWarningText = document.getElementById('legendWarningText');
   const legendDangerText = document.getElementById('legendDangerText');
-  
+
   if (legendGoodText && legendWarningText && legendDangerText) {
     const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
@@ -1192,12 +1198,12 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   });
   html += '</tr></thead><tbody>';
 
-    days.forEach((day, dIdx) => {
+  days.forEach((day, dIdx) => {
     html += `<tr><td class="cell-label">${day}</td>`;
     hours.forEach((h, hIdx) => {
       const cell = dayHourMap[dIdx][parseInt(h)];
       const avg = cell.count > 0 ? cell.sum / cell.count : 0;
-      
+
       // Interpolate colors based on value
       // 0: Light background, Low: Green, Mid: Yellow, High: Red
       let bgColor = 'rgba(0, 0, 0, 0.05)'; // Default for no data in light theme
@@ -1207,16 +1213,16 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
         // goodThreshold -> #22c55e (Green - 양호)
         // warningThreshold -> #facc15 (Yellow - 주의)
         // Max -> #ef4444 (Red - 나쁨)
-        
+
         const maxVal = Math.max(warningThreshold * 1.5, avg); // Ensure red is reached
         const colorScale = d3.scaleLinear()
           .domain([0, goodThreshold, warningThreshold, maxVal])
           .range(['#dcfce7', '#22c55e', '#facc15', '#ef4444'])
           .clamp(true);
-          
+
         bgColor = colorScale(avg);
       }
-      
+
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}${unit}` : 'No data';
       html += `<td style="background-color: ${bgColor}" 
@@ -1257,7 +1263,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     const mid = Math.floor(arr.length / 2);
     return arr.length % 2 !== 0 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
   };
-  
+
   const medianX = d3Median(times);
   const medianY = d3Median(counts);
   const maxX = Math.max(...times, 100);
@@ -1268,7 +1274,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   const containerWidth = container.clientWidth || 500;
   // Use fixed height or responsive
   const containerHeight = Math.max(container.clientHeight, 350) || 350;
-  
+
   const width = containerWidth - margin.left - margin.right;
   const height = containerHeight - margin.top - margin.bottom;
 
@@ -1335,23 +1341,23 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("fill", d => colorScale(d.length))
     .attr("stroke", "white")
     .attr("stroke-width", "0.5")
-    .on("mouseover", function(event, d) {
+    .on("mouseover", function (event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
       // Find min ~ max ranges of the bin for the tooltip
       const minTime = d3.min(d, p => p.value); // Changed from p.responseTime to p.value
       const maxTime = d3.max(d, p => p.value); // Changed from p.responseTime to p.value
       const minCount = d3.min(d, p => p.count);
       const maxCount = d3.max(d, p => p.count);
-      
+
       const timeRange = minTime === maxTime ? `${Math.round(minTime)}` : `${Math.round(minTime)} ~ ${Math.round(maxTime)}`;
       const countRange = minCount === maxCount ? `${Math.round(minCount)}` : `${Math.round(minCount)} ~ ${Math.round(maxCount)}`;
-      
+
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const labelName = isHitSelected ? 'Res.Time' : 'Value';
       const tooltipText = `${labelName}: ${timeRange} ${unit}<br/>Hits: ${countRange}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
-    .on("mouseout", function() {
+    .on("mouseout", function () {
       d3.select(this).attr("stroke", "white").attr("stroke-width", "0.5");
       hideHeatmapTooltip();
     });
@@ -1362,13 +1368,13 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     return Math.round(num).toString();
   };
 
-    const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-    svg.append("text")
-      .attr("x", width / 2)
-      .attr("y", height + 25)
-      .attr("class", "quadrant-label")
-      .attr("text-anchor", "middle")
-      .text(formatNum(medianX) + unit);
+  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", height + 25)
+    .attr("class", "quadrant-label")
+    .attr("text-anchor", "middle")
+    .text(formatNum(medianX) + unit);
 
   // Y-Axis Median Label
   svg.append("text")
@@ -1389,20 +1395,20 @@ if (!globalHeatmapTooltip) {
   document.body.appendChild(globalHeatmapTooltip);
 }
 
-window.showHeatmapTooltip = function(event, text) {
+window.showHeatmapTooltip = function (event, text) {
   if (!globalHeatmapTooltip) return;
-  
+
   globalHeatmapTooltip.innerHTML = text;
   globalHeatmapTooltip.style.display = 'block';
-  
+
   const x = event.pageX + 15;
   const y = event.pageY + 15;
-  
+
   globalHeatmapTooltip.style.left = x + 'px';
   globalHeatmapTooltip.style.top = y + 'px';
 };
 
-window.hideHeatmapTooltip = function() {
+window.hideHeatmapTooltip = function () {
   if (globalHeatmapTooltip) globalHeatmapTooltip.style.display = 'none';
 };
 
@@ -1421,18 +1427,18 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   }
 
   const today = new Date();
-  const todayStr = today.getFullYear() + 
-                   String(today.getMonth() + 1).padStart(2, '0') + 
-                   String(today.getDate()).padStart(2, '0');
+  const todayStr = today.getFullYear() +
+    String(today.getMonth() + 1).padStart(2, '0') +
+    String(today.getDate()).padStart(2, '0');
 
   const calcAvg = data => {
-    const validData = data.filter(d => 
-      d.time <= todayStr && 
+    const validData = data.filter(d =>
+      d.time <= todayStr &&
       d.value !== 0 && d.value !== null && d.value !== undefined
     );
     return validData.length ? validData.reduce((s, d) => s + d.value, 0) / validData.length : 0;
   };
-  
+
   const sliceData = (metricKey) => {
     // If the selected metric (e.g. main chart) has different length than the rest, fallback to full length of that metric
     const arr = yearlyData[metricKey];
@@ -1521,20 +1527,20 @@ function calculateInterval(startDate, endDate) {
 // Fallback logic for when API is unreachable due to CORS or local network issues
 function mockDataOnFailPartial() {
   console.log("Using Mock Data (1 Year)");
- 
+
   // Generate 365 days of mock data
   const mockDates = [];
   const startYearDate = new Date();
   startYearDate.setFullYear(startYearDate.getFullYear() - 1);
-  
+
   for (let i = 0; i < 365; i++) {
     const d = new Date(startYearDate.getTime() + i * 24 * 3600000);
-    const dateStr = d.getFullYear() + 
-                    String(d.getMonth() + 1).padStart(2, '0') + 
-                    String(d.getDate()).padStart(2, '0');
+    const dateStr = d.getFullYear() +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      String(d.getDate()).padStart(2, '0');
     mockDates.push(dateStr);
   }
- 
+
   yearlyData['service_time'] = mockDates.map(d => ({ time: d, value: 3000 + Math.random() * 2000 }));
   yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 5 }));
   yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 200 }));
@@ -1542,26 +1548,26 @@ function mockDataOnFailPartial() {
   yearlyData['sys_cpu'] = mockDates.map(d => ({ time: d, value: 10 + Math.random() * 25 }));
   yearlyData['max_sys_cpu'] = mockDates.map(d => ({ time: d, value: 40 + Math.random() * 50 }));
   yearlyData['heap_usage'] = mockDates.map(d => ({ time: d, value: 30 + Math.random() * 40 }));
-  
+
   // Update main chart
   const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
   const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
- 
+
   updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
     mainChartInstance = instance;
   });
   updateSummaryCardsPartial(0, yearlyData['service_time'].length - 1);
- 
+
   // Mock Heatmap Data (last 30 days)
   const heatmapMockData = [];
   const start = new Date();
   start.setDate(start.getDate() - 30);
   for (let i = 0; i < 30 * 24; i++) {
     const d = new Date(start.getTime() + i * 3600000);
-    const timeStr = d.getFullYear() + 
-                    String(d.getMonth() + 1).padStart(2, '0') + 
-                    String(d.getDate()).padStart(2, '0') + 
-                    String(d.getHours()).padStart(2, '0') + "00";
+    const timeStr = d.getFullYear() +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      String(d.getDate()).padStart(2, '0') +
+      String(d.getHours()).padStart(2, '0') + "00";
     heatmapMockData.push({
       time: timeStr,
       responseTime: 50 + Math.random() * 400,
