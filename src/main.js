@@ -1421,6 +1421,13 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("text-anchor", "end")
     .attr("alignment-baseline", "middle")
     .text(formatNum(medianX) + unit);
+
+  // Update Footer Label (External to SVG)
+  const labelY = document.getElementById('overallHeatmapLabelY');
+  if (labelY) {
+    const metricDisplayName = isHitSelected ? '응답시간' : document.querySelector(`.metric-btn[data-metric="${metric}"]`).textContent;
+    labelY.textContent = `${metricDisplayName} (${unit})`;
+  }
 }
 
 // Ensure a single global tooltip exists
