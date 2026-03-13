@@ -14,13 +14,17 @@ const MONTH_COLORS = [
 // Store chart instances
 let mainChartInstance = null;
 let currentChartType = 'line';
-let currentMetricData = [];
 let yearlyData = {
   service_time: [],
   service_rate: [],
   concurrent_user: [],
-  service_count: []
+  service_count: [],
+  sys_cpu: [],
+  heap_usage: [],
+  max_sys_cpu: []
 };
+ 
+let currentMetric = 'service_time';
 
 // Chart Selection State
 let selectedStartMonth = null;
@@ -32,8 +36,10 @@ let dragCurrentX = null;
 // DOM Elements
 const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
-const metricsSelect = document.getElementById('metricsSelect');
 const searchBtn = document.getElementById('searchBtn');
+const metricsToggle = document.getElementById('metricsToggle');
+const btnSysCpu = document.getElementById('btnSysCpu');
+const btnHeapUsage = document.getElementById('btnHeapUsage');
 
 // Configure Chart.js global defaults
 Chart.defaults.font.family = '"Pretendard JP", sans-serif';
@@ -59,6 +65,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Bind metric toggle buttons
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+      const targetBtn = e.currentTarget;
+      targetBtn.classList.add('active');
+      currentMetric = targetBtn.dataset.metric;
+ 
+      const metricData = yearlyData[currentMetric];
+      if (metricData && metricData.length > 0) {
+        const metricDisplayName = targetBtn.textContent;
+        updateChart('mainChart', metricDisplayName, metricData, '#22c55e', mainChartInstance, (instance) => {
+          mainChartInstance = instance;
+        });
+        
+        // Update summary cards for the selected range if exists
+        handleChartSelectionChanged();
+      }
+    });
+  });
+ 
   // Bind chart type toggles
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -66,10 +93,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetBtn = e.currentTarget;
       targetBtn.classList.add('active');
       currentChartType = targetBtn.dataset.type;
-
-      if (currentMetricData.length > 0) {
-        const metricsName = metricsSelect.options[metricsSelect.selectedIndex].text;
-        updateChart('mainChart', metricsName, currentMetricData, '#22c55e', mainChartInstance, (instance) => {
+ 
+      const metricData = yearlyData[currentMetric];
+      if (metricData && metricData.length > 0) {
+        const metricDisplayName = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`).textContent;
+        updateChart('mainChart', metricDisplayName, metricData, '#22c55e', mainChartInstance, (instance) => {
           mainChartInstance = instance;
         });
       }
@@ -78,8 +106,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Bind resize event to re-align stats
   window.addEventListener('resize', () => {
-    if (mainChartInstance && currentMetricData.length > 0) {
-      const labels = currentMetricData.map(item => parseDateString(item.time));
+    const curMetricData = yearlyData[currentMetric] || [];
+    if (mainChartInstance && curMetricData.length > 0) {
+      const labels = curMetricData.map(item => parseDateString(item.time));
       updateChartStatsGrid(labels, mainChartInstance);
     }
   });
@@ -179,7 +208,23 @@ async function loadInstances(domainId) {
       option.textContent = instance.name;
       instanceSelect.appendChild(option);
     });
-
+ 
+    // Toggle CPU/Memory buttons visibility
+    if (domainId && domainId !== '1000') {
+      btnSysCpu.classList.remove('hidden');
+      btnHeapUsage.classList.remove('hidden');
+    } else {
+      // For mock domain or domain-level view without instances, we might hide them
+      // But requirement says "인스턴스까지 선택이 되었을 경우에만"
+      btnSysCpu.classList.add('hidden');
+      btnHeapUsage.classList.add('hidden');
+      
+      // If one of these was active, switch back to response time
+      if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
+        document.querySelector('.metric-btn[data-metric="service_time"]').click();
+      }
+    }
+ 
   } catch (error) {
     console.error(`Failed to load instances for domain ${domainId}. URL: ${urlString}`, error);
     
@@ -202,8 +247,6 @@ async function loadInstances(domainId) {
 async function loadData() {
   const domainId = domainSelect.value;
   const instanceId = instanceSelect.value;
-  const metrics = metricsSelect.value;
-  const metricsName = metricsSelect.options[metricsSelect.selectedIndex].text;
 
   searchBtn.disabled = true;
   searchBtn.textContent = '조회 중...';
@@ -212,7 +255,7 @@ async function loadData() {
     const today = new Date();
 
     // Main Chart & Summary Metrics: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
-    const metricsToFetch = Array.from(new Set([metrics, 'service_time', 'service_rate', 'concurrent_user', 'service_count']));
+    const metricsToFetch = Array.from(new Set([currentMetric, 'service_time', 'service_rate', 'concurrent_user', 'service_count', 'sys_cpu', 'heap_usage', 'max_sys_cpu']));
     const fetchPromisesMap = {};
     metricsToFetch.forEach(m => fetchPromisesMap[m] = []);
 
@@ -257,14 +300,13 @@ async function loadData() {
     metricsToFetch.forEach(m => {
       yearlyData[m] = processResults(results[m]);
     });
-
-    currentMetricData = yearlyData[metrics];
-
+ 
     // Update UI Elements for Chart
-    document.getElementById('chartTitle').textContent = metricsName;
-
+    const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
+    const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
+    
     // Update main chart
-    updateChart('mainChart', metricsName, currentMetricData, '#22c55e', mainChartInstance, (instance) => {
+    updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
       mainChartInstance = instance;
     });
 
@@ -275,7 +317,8 @@ async function loadData() {
     if (rangeDisplay) rangeDisplay.textContent = '전체 (1년)';
 
     // Update Summary Cards
-    updateSummaryCardsPartial(0, currentMetricData.length - 1);
+    const curData = yearlyData[currentMetric] || [];
+    updateSummaryCardsPartial(0, curData.length - 1);
 
     // Heatmaps Data Fetching
     // We can rely on the selection changed handler to load heatmaps for the default 1-year view
@@ -283,7 +326,7 @@ async function loadData() {
 
   } catch (error) {
     console.error('Data loading failed:', error);
-    mockDataOnFailPartial(metrics, metricsName);
+    mockDataOnFailPartial();
   } finally {
     searchBtn.disabled = false;
     searchBtn.textContent = '조회';
@@ -402,7 +445,8 @@ const monthBoundaryPlugin = {
   },
   afterDraw(chart) {
     // Stats are now rendered in HTML section instead of canvas
-    if (chart.data.labels && currentMetricData.length > 0) {
+    const curMetricData = yearlyData[currentMetric] || [];
+    if (chart.data.labels && curMetricData.length > 0) {
       updateChartStatsGrid(chart.data.labels, chart);
     }
   }
@@ -559,43 +603,63 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
 
   // Compute month-by-month averages BEFORE creating/updating chart so afterDraw has data
   calculateMonthlyAverages(data, label);
-
+ 
+  const datasets = [];
+  
+  // Primary Dataset
+  const primaryDataset = {
+    label: label,
+    data: values,
+    borderWidth: 2,
+  };
+ 
+  if (currentChartType === 'line') {
+    primaryDataset.fill = true;
+    primaryDataset.tension = 0;
+    primaryDataset.pointRadius = 0;
+    primaryDataset.pointHoverRadius = 5;
+    primaryDataset.segment = {
+      borderColor: ctx => getMonthColor(ctx, color, ''),
+      backgroundColor: ctx => getMonthColor(ctx, color, '80')
+    };
+  } else { // bar
+    primaryDataset.backgroundColor = ctx => getMonthColor(ctx, color, '80');
+    primaryDataset.borderColor = ctx => getMonthColor(ctx, color, '');
+  }
+  datasets.push(primaryDataset);
+ 
+  // Handle System CPU dual line (Avg + Max)
+  if (currentMetric === 'sys_cpu' && yearlyData['max_sys_cpu'].length > 0) {
+    const maxCpuData = yearlyData['max_sys_cpu'].map(item => item.value);
+    const maxDataset = {
+      label: '최대 CPU',
+      data: maxCpuData,
+      borderWidth: 1.5,
+      borderColor: '#ef4444',
+      backgroundColor: 'transparent',
+      pointRadius: 0,
+      tension: 0,
+      borderDash: [5, 5] // Dotted line for max
+    };
+    datasets.push(maxDataset);
+  }
+ 
   if (chartInstance && chartInstance.config.type !== currentChartType) {
     chartInstance.destroy();
     chartInstance = null;
   }
-
+ 
   if (chartInstance) {
     chartInstance.data.labels = labels;
-    chartInstance.data.datasets[0].data = values;
+    chartInstance.data.datasets = datasets;
     chartInstance.update();
   } else {
     // Create new chart
-    const datasetConfig = {
-      label: label,
-      data: values,
-      borderWidth: 2,
-    };
-
-    if (currentChartType === 'line') {
-      datasetConfig.fill = true;
-      datasetConfig.tension = 0;
-      datasetConfig.pointRadius = 0;
-      datasetConfig.pointHoverRadius = 5;
-      datasetConfig.segment = {
-        borderColor: ctx => getMonthColor(ctx, color, ''),
-        backgroundColor: ctx => getMonthColor(ctx, color, '80')
-      };
-    } else { // bar
-      datasetConfig.backgroundColor = ctx => getMonthColor(ctx, color, '80');
-      datasetConfig.borderColor = ctx => getMonthColor(ctx, color, '');
-    }
-
     const newChart = new Chart(ctx, {
       type: currentChartType,
       data: {
         labels: labels,
-        datasets: [datasetConfig]
+        datasets: datasets
       },
       plugins: [monthBoundaryPlugin, selectionRangePlugin],
       options: {
@@ -849,9 +913,13 @@ function updateChartStatsGrid(labels, chart) {
 // Selection Change Handler
 async function handleChartSelectionChanged() {
   const rangeDisplay = document.getElementById('selectedRangeDisplay');
-  const metrics = metricsSelect.value;
+  const metrics = currentMetric;
   const domainId = domainSelect.value;
   const instanceId = instanceSelect.value;
+  
+  const currentMetricData = yearlyData[currentMetric] || [];
+  let startIdx = -1;
+  let endIdx = -1;
 
   if (!selectedStartMonth || !selectedEndMonth) {
     rangeDisplay.textContent = '전체 (1년)';
@@ -887,18 +955,14 @@ async function handleChartSelectionChanged() {
     return;
   }
 
-  // Find actual start and end dates from currentMetricData based on selected month labels
-  // The data has `time`: '202603010000', `label`: '03/01'
-  let startIdx = -1;
-  let endIdx = -1;
-  
-  // Convert '03' (for example) to '202603' or matching substring
-  // We'll iterate through labels to find the exact start/end data indices
-  const labels = currentMetricData.map(item => parseDateString(item.time));
-  
   // Because selectedStartMonth/EndMonth could be out of order in the UI drag (already sorted in plugin)
   let tStartMonth = selectedStartMonth;
   let tEndMonth = selectedEndMonth;
+  
+  // Use the already declared currentMetricData
+  
+  // Find first occurrence of start month
+  const labels = currentMetricData.map(item => parseDateString(item.time));
   
   // Find first occurrence of start month
   for (let i = 0; i < labels.length; i++) {
@@ -931,7 +995,7 @@ async function handleChartSelectionChanged() {
     const startStr = currentMetricData[startIdx].time.substring(0, 8); // yyyymmdd
     const endStr = currentMetricData[endIdx].time.substring(0, 8);
     
-    const formatYMD = (str) => {
+    const formatYMDLocal = (str) => {
       const y = str.substring(0,4);
       const m = str.substring(4,6);
       const d = str.substring(6,8);
@@ -977,10 +1041,15 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
 
       const chunkStartStr = formatDateParam(currentStart);
       const chunkEndStr = formatDateParam(currentEnd);
-
+ 
+      // Determine what metric to fetch for heatmap value
+      // Overall heatmap always uses Hit수 (service_count) on Y-axis
+      // Day x Hour heatmap uses the selected metric on Z-axis (color)
+      const metricToFetch = currentMetric === 'service_count' ? 'service_time' : currentMetric;
+ 
       timePromises.push(
-        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_time')
-          .catch(err => { console.warn("Heatmap service_time chunk failed", err); return []; })
+        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, metricToFetch)
+          .catch(err => { console.warn(`Heatmap ${metricToFetch} chunk failed`, err); return []; })
       );
       countPromises.push(
         fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
@@ -1005,13 +1074,14 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       const countItem = heatmapCountData[idx];
       return {
         time: timeItem.time,
-        responseTime: timeItem.value,
+        value: timeItem.value, // This is currentMetric value (or service_time if Hit수 is selected)
         count: countItem ? countItem.value : 0
       };
     });
-
-    renderDayHourHeatmap(combinedHeatmapData);
-    renderOverallHeatmap(combinedHeatmapData);
+ 
+    const isHitSelected = (currentMetric === 'service_count');
+    renderDayHourHeatmap(combinedHeatmapData, isHitSelected);
+    renderOverallHeatmap(combinedHeatmapData, isHitSelected);
   } catch (error) {
     console.error("Heatmaps reloading failed:", error);
   }
@@ -1052,7 +1122,7 @@ function renderDayHourHeatmap(data) {
     // API returns 24 items per day in chronological order
     items.forEach((item, posInDay) => {
       const hour = posInDay % 24;
-      dayHourMap[dayIdx][hour].sum += item.responseTime;
+      dayHourMap[dayIdx][hour].sum += item.value; // Changed from item.responseTime to item.value
       dayHourMap[dayIdx][hour].count++;
     });
   });
@@ -1178,7 +1248,7 @@ function renderOverallHeatmap(data) {
   container.innerHTML = ''; // Clear previous
 
   // 2. Calculate Medians (Central Axes)
-  const times = validData.map(d => d.responseTime).sort((a, b) => a - b);
+  const times = validData.map(d => d.value).sort((a, b) => a - b); // Changed from d.responseTime to d.value
   const counts = validData.map(d => d.count).sort((a, b) => a - b);
 
   const d3Median = (arr) => {
@@ -1223,7 +1293,7 @@ function renderOverallHeatmap(data) {
   // The radius determines the size of the hexagons
   const radius = 12;
   const hexbin = d3.hexbin()
-    .x(d => xScale(d.responseTime))
+    .x(d => xScale(d.value)) // Changed from d.responseTime to d.value
     .y(d => yScale(d.count))
     .radius(radius)
     .extent([[0, 0], [width, height]]);
@@ -1266,8 +1336,8 @@ function renderOverallHeatmap(data) {
     .on("mouseover", function(event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
       // Find min ~ max ranges of the bin for the tooltip
-      const minTime = d3.min(d, p => p.responseTime);
-      const maxTime = d3.max(d, p => p.responseTime);
+      const minTime = d3.min(d, p => p.value); // Changed from p.responseTime to p.value
+      const maxTime = d3.max(d, p => p.value); // Changed from p.responseTime to p.value
       const minCount = d3.min(d, p => p.count);
       const maxCount = d3.max(d, p => p.count);
       
@@ -1373,6 +1443,9 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const srData = sliceData('service_rate');
   const cuData = sliceData('concurrent_user');
   const scData = sliceData('service_count');
+  const sysCpuData = sliceData('sys_cpu');
+  const maxSysCpuData = sliceData('max_sys_cpu');
+  const heapUsageData = sliceData('heap_usage');
 
   // Peak Date (Based on Max response time as a standard indicator for peak, or max selected metric if preferred. Here using service_time)
   if (stData.length > 0) {
@@ -1389,11 +1462,17 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const avgSR = calcAvg(srData);
   const avgCU = calcAvg(cuData);
   const avgSC = calcAvg(scData);
+  const avgSysCpu = calcAvg(sysCpuData);
+  const avgMaxSysCpu = calcAvg(maxSysCpuData);
+  const avgHeapUsage = calcAvg(heapUsageData);
 
   document.getElementById('avgResponseTime').innerHTML = `${Math.round(avgST).toLocaleString()} <span class="unit">ms</span>`;
   document.getElementById('avgTps').textContent = avgSR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
   document.getElementById('avgHits').textContent = Math.round(avgSC).toLocaleString();
+  document.getElementById('avgSysCpu').textContent = `${Math.round(avgSysCpu)}%`;
+  document.getElementById('avgMaxSysCpu').textContent = `${Math.round(avgMaxSysCpu)}%`;
+  document.getElementById('avgHeapUsage').textContent = `${Math.round(avgHeapUsage)}%`;
 }
 
 // Utilities
@@ -1424,28 +1503,40 @@ function calculateInterval(startDate, endDate) {
 }
 
 // Fallback logic for when API is unreachable due to CORS or local network issues
-function mockDataOnFailPartial(metrics, metricsName) {
-  console.log("Using Mock Data");
-
-  const mockDates = ["20260201", "20260202", "20260203", "20260204", "20260205", "20260206", "20260207", "20260208", "20260209", "20260210"];
-
-  yearlyData['service_time'] = mockDates.map(d => ({ time: d, value: 4000 + Math.random() * 1500 }));
-  yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 4 }));
-  yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 150 }));
-  yearlyData['service_count'] = mockDates.map(d => ({ time: d, value: 5000 + Math.random() * 10000 }));
+function mockDataOnFailPartial() {
+  console.log("Using Mock Data (1 Year)");
+ 
+  // Generate 365 days of mock data
+  const mockDates = [];
+  const startYearDate = new Date();
+  startYearDate.setFullYear(startYearDate.getFullYear() - 1);
   
-  if (!yearlyData[metrics]) {
-    yearlyData[metrics] = mockDates.map(d => ({ time: d, value: 50 + Math.random() * 150 }));
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(startYearDate.getTime() + i * 24 * 3600000);
+    const dateStr = d.getFullYear() + 
+                    String(d.getMonth() + 1).padStart(2, '0') + 
+                    String(d.getDate()).padStart(2, '0');
+    mockDates.push(dateStr);
   }
-
-  document.getElementById('chartTitle').textContent = metricsName;
-
-  currentMetricData = yearlyData[metrics]; // Save for toggle logic
-
-  updateChart('mainChart', metricsName, currentMetricData, '#22c55e', mainChartInstance, (instance) => mainChartInstance = instance);
-  updateSummaryCardsPartial(0, currentMetricData.length - 1);
-
-  // Mock Heatmap Data
+ 
+  yearlyData['service_time'] = mockDates.map(d => ({ time: d, value: 3000 + Math.random() * 2000 }));
+  yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 5 }));
+  yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 200 }));
+  yearlyData['service_count'] = mockDates.map(d => ({ time: d, value: 5000 + Math.random() * 15000 }));
+  yearlyData['sys_cpu'] = mockDates.map(d => ({ time: d, value: 10 + Math.random() * 25 }));
+  yearlyData['max_sys_cpu'] = mockDates.map(d => ({ time: d, value: 40 + Math.random() * 50 }));
+  yearlyData['heap_usage'] = mockDates.map(d => ({ time: d, value: 30 + Math.random() * 40 }));
+  
+  // Update main chart
+  const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
+  const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
+ 
+  updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
+    mainChartInstance = instance;
+  });
+  updateSummaryCardsPartial(0, yearlyData['service_time'].length - 1);
+ 
+  // Mock Heatmap Data (last 30 days)
   const heatmapMockData = [];
   const start = new Date();
   start.setDate(start.getDate() - 30);

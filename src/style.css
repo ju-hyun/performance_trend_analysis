@@ -218,7 +218,7 @@ body {
 /* Summary Cards */
 .summary-cards {
   display: grid;
-  grid-template-columns: 280px repeat(5, 1fr);
+  grid-template-columns: 280px repeat(7, 1fr);
   gap: 1.0rem;
   margin-bottom: 0.5rem;
 }
@@ -366,6 +366,43 @@ body {
   position: relative;
   height: 380px;
   width: 100%;
+}
+
+/* Metrics Toggle */
+.metrics-toggle {
+  display: flex;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.metric-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.metric-btn:hover:not(.active) {
+  background-color: rgba(0, 0, 0, 0.03);
+  color: var(--text-primary);
+}
+
+.metric-btn.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-btn.hidden {
+  display: none;
 }
 
 .chart-stats-container {

@@ -31,15 +31,6 @@
             <option value="">전체 (도메인 단위조회)</option>
           </select>
         </div>
-        <div class="filter-group">
-          <label>메트릭스</label>
-          <select id="metricsSelect" class="form-select">
-            <option value="service_time">응답시간</option>
-            <option value="service_rate">TPS</option>
-            <option value="concurrent_user">동시사용자수</option>
-          </select>
-        </div>
-
         <div class="filter-actions">
           <button id="searchBtn" class="btn btn-primary">조회</button>
         </div>
@@ -50,7 +41,14 @@
       <section class="charts-grid">
         <div class="chart-card single-chart-card">
           <div class="chart-header">
-            <h3 id="chartTitle">응답시간</h3>
+            <div class="metrics-toggle" id="metricsToggle">
+              <button class="metric-btn active" data-metric="service_time">응답시간</button>
+              <button class="metric-btn" data-metric="service_rate">TPS</button>
+              <button class="metric-btn" data-metric="service_count">Hit수</button>
+              <button class="metric-btn" data-metric="concurrent_user">동시사용자</button>
+              <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu">시스템CPU</button>
+              <button class="metric-btn hidden" data-metric="heap_usage" id="btnHeapUsage">메모리사용률</button>
+            </div>
             <div class="chart-type-toggle">
               <button class="type-btn active" data-type="line">라인</button>
               <button class="type-btn" data-type="bar">바</button>
@@ -162,6 +160,57 @@
           <div class="summary-value" id="avgConcurrentUsers">0</div>
         </div>
 
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="15" x2="23" y2="15"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="15" x2="4" y2="15"></line>
+              </svg>
+            </span>
+            <h3>평균 CPU</h3>
+          </div>
+          <div class="summary-value" id="avgSysCpu">0%</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <path d="M12 2v20"></path>
+                <path d="m17 5-5-3-5 3"></path>
+                <path d="m17 19-5 3-5-3"></path>
+              </svg>
+            </span>
+            <h3>최대 CPU</h3>
+          </div>
+          <div class="summary-value" id="avgMaxSysCpu">0%</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <path d="M6 19v-3"></path>
+                <path d="M10 19V11"></path>
+                <path d="M14 19V7"></path>
+                <path d="M18 19V3"></path>
+                <path d="M22 19V15"></path>
+              </svg>
+            </span>
+            <h3>메모리사용률</h3>
+          </div>
+          <div class="summary-value" id="avgHeapUsage">0%</div>
+        </div>
       </section>
 
       <!-- Heatmaps Section -->
