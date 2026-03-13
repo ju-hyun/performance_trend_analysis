@@ -65,6 +65,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  instanceSelect.addEventListener('change', () => {
+    const isInstanceSelected = !!instanceSelect.value;
+    if (isInstanceSelected) {
+      btnSysCpu.classList.remove('hidden');
+      btnHeapUsage.classList.remove('hidden');
+    } else {
+      btnSysCpu.classList.add('hidden');
+      btnHeapUsage.classList.add('hidden');
+      
+      // If active metric is hidden, switch to response time
+      if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
+        const defaultBtn = document.querySelector('.metric-btn[data-metric="service_time"]');
+        if (defaultBtn) defaultBtn.click();
+      }
+    }
+  });
+
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -208,23 +225,6 @@ async function loadInstances(domainId) {
       option.textContent = instance.name;
       instanceSelect.appendChild(option);
     });
- 
-    // Toggle CPU/Memory buttons visibility
-    if (domainId && domainId !== '1000') {
-      btnSysCpu.classList.remove('hidden');
-      btnHeapUsage.classList.remove('hidden');
-    } else {
-      // For mock domain or domain-level view without instances, we might hide them
-      // But requirement says "인스턴스까지 선택이 되었을 경우에만"
-      btnSysCpu.classList.add('hidden');
-      btnHeapUsage.classList.add('hidden');
-      
-      // If one of these was active, switch back to response time
-      if (currentMetric === 'sys_cpu' || currentMetric === 'heap_usage') {
-        document.querySelector('.metric-btn[data-metric="service_time"]').click();
-      }
-    }
- 
   } catch (error) {
     console.error(`Failed to load instances for domain ${domainId}. URL: ${urlString}`, error);
     
@@ -931,13 +931,13 @@ async function handleChartSelectionChanged() {
       const startStr = currentMetricData[0].time;
       const endStr = currentMetricData[currentMetricData.length - 1].time;
       
-      const formatYMD = (str) => {
+      const formatYMDLocal = (str) => {
         const y = str.substring(0,4);
         const m = str.substring(4,6);
         const d = str.substring(6,8);
         return `${y}.${m}.${d}`;
       };
-      rangeDisplay.innerHTML = `${formatYMD(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMD(endStr)}`;
+      rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
       
       const sYear = parseInt(startStr.substring(0,4), 10);
       const sMonth = parseInt(startStr.substring(4,6), 10) - 1;
@@ -1001,7 +1001,7 @@ async function handleChartSelectionChanged() {
       const d = str.substring(6,8);
       return `${y}.${m}.${d}`;
     };
-    rangeDisplay.innerHTML = `${formatYMD(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMD(endStr)}`;
+    rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
 
     // 2. Filter data for Summary Cards
     updateSummaryCardsPartial(startIdx, endIdx);
@@ -1080,14 +1080,14 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
     });
  
     const isHitSelected = (currentMetric === 'service_count');
-    renderDayHourHeatmap(combinedHeatmapData, isHitSelected);
-    renderOverallHeatmap(combinedHeatmapData, isHitSelected);
+    renderDayHourHeatmap(combinedHeatmapData, isHitSelected, currentMetric);
+    renderOverallHeatmap(combinedHeatmapData, isHitSelected, currentMetric);
   } catch (error) {
     console.error("Heatmaps reloading failed:", error);
   }
 }
 
-function renderDayHourHeatmap(data) {
+function renderDayHourHeatmap(data, isHitSelected, metric) {
   const container = document.getElementById('dayHourHeatmap');
   if (!container) return;
 
@@ -1173,10 +1173,11 @@ function renderDayHourHeatmap(data) {
   const legendDangerText = document.getElementById('legendDangerText');
   
   if (legendGoodText && legendWarningText && legendDangerText) {
+    const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
-      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(goodThreshold)}ms)</span>`;
-      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(warningThreshold)}ms)</span>`;
-      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${Math.round(warningThreshold)}ms)</span>`;
+      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(goodThreshold)}${unit})</span>`;
+      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${Math.round(warningThreshold)}${unit})</span>`;
     } else {
       legendGoodText.textContent = '양호';
       legendWarningText.textContent = '주의';
@@ -1216,7 +1217,8 @@ function renderDayHourHeatmap(data) {
         bgColor = colorScale(avg);
       }
       
-      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}ms` : 'No data';
+      const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}${unit}` : 'No data';
       html += `<td style="background-color: ${bgColor}" 
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
                 onmouseout="hideHeatmapTooltip()">
@@ -1229,7 +1231,7 @@ function renderDayHourHeatmap(data) {
   container.innerHTML = html;
 }
 
-function renderOverallHeatmap(data) {
+function renderOverallHeatmap(data, isHitSelected, metric) {
   const container = document.getElementById('overallHeatmap');
   if (!container) return;
 
@@ -1344,7 +1346,9 @@ function renderOverallHeatmap(data) {
       const timeRange = minTime === maxTime ? `${Math.round(minTime)}` : `${Math.round(minTime)} ~ ${Math.round(maxTime)}`;
       const countRange = minCount === maxCount ? `${Math.round(minCount)}` : `${Math.round(minCount)} ~ ${Math.round(maxCount)}`;
       
-      const tooltipText = `Time: ${timeRange} ms<br/>Count: ${countRange}<br/>Points: ${d.length}`;
+      const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+      const labelName = isHitSelected ? 'Res.Time' : 'Value';
+      const tooltipText = `${labelName}: ${timeRange} ${unit}<br/>Hits: ${countRange}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
     .on("mouseout", function() {
@@ -1358,13 +1362,13 @@ function renderOverallHeatmap(data) {
     return Math.round(num).toString();
   };
 
-  // X-Axis Median Label
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", height + 25)
-    .attr("class", "quadrant-label")
-    .attr("text-anchor", "middle")
-    .text(formatNum(medianX) + "ms");
+    const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+    svg.append("text")
+      .attr("x", width / 2)
+      .attr("y", height + 25)
+      .attr("class", "quadrant-label")
+      .attr("text-anchor", "middle")
+      .text(formatNum(medianX) + unit);
 
   // Y-Axis Median Label
   svg.append("text")
@@ -1480,6 +1484,19 @@ function formatDateParam(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}${m}${d}`;
+}
+
+function getMetricUnit(metric) {
+  switch (metric) {
+    case 'service_time': return 'ms';
+    case 'service_rate': return 'TPS';
+    case 'concurrent_user': return '명';
+    case 'service_count': return 'Hits';
+    case 'sys_cpu':
+    case 'max_sys_cpu':
+    case 'heap_usage': return '%';
+    default: return '';
+  }
 }
 
 function parseDateString(dateStr, full = false) {
