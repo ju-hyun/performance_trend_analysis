@@ -1395,8 +1395,9 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
       const minCount = d3.min(d, p => p.count);
       const maxCount = d3.max(d, p => p.count);
 
-      const timeRange = minTime === maxTime ? `${Math.round(minTime)}` : `${Math.round(minTime)} ~ ${Math.round(maxTime)}`;
-      const countRange = minCount === maxCount ? `${Math.round(minCount)}` : `${Math.round(minCount)} ~ ${Math.round(maxCount)}`;
+      const formatVal = (v) => Number.isInteger(v) ? v.toString() : v.toFixed(2);
+      const timeRange = minTime === maxTime ? formatVal(minTime) : `${formatVal(minTime)} ~ ${formatVal(maxTime)}`;
+      const countRange = minCount === maxCount ? formatVal(minCount) : `${formatVal(minCount)} ~ ${formatVal(maxCount)}`;
 
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const labelName = isHitSelected ? 'Res.Time' : 'Value';
@@ -1411,7 +1412,8 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // 8. Minimalist Labels (Only Medians)
   const formatNum = (num) => {
     if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
-    return Math.round(num).toString();
+    // If it's not an integer, show 2 decimal places. Otherwise show as is.
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
   };
 
   // X-Axis Median Label (Hits)
