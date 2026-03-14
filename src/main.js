@@ -1227,9 +1227,10 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   if (legendGoodText && legendWarningText && legendDangerText) {
     const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
-      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(goodThreshold)}${unit})</span>`;
-      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${Math.round(warningThreshold)}${unit})</span>`;
-      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${Math.round(warningThreshold)}${unit})</span>`;
+      const formatThreshold = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
+      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
     } else {
       legendGoodText.textContent = '양호';
       legendWarningText.textContent = '주의';
@@ -1270,7 +1271,8 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
       }
 
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${Math.round(avg)}${unit}` : 'No data';
+      const formattedAvg = avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${formattedAvg}${unit}` : 'No data';
       html += `<td style="background-color: ${bgColor}" 
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
                 onmouseout="hideHeatmapTooltip()">
