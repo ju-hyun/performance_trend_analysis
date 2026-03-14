@@ -1520,10 +1520,11 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const maxSysCpuData = sliceData('max_sys_cpu');
   const heapUsageData = sliceData('heap_usage');
 
-  // Peak Date (Based on Max response time as a standard indicator for peak, or max selected metric if preferred. Here using service_time)
-  if (stData.length > 0) {
-    let maxEntry = stData[0];
-    stData.forEach(entry => {
+  // Peak Date (Based on currently selected metric)
+  const currentData = sliceData(currentMetric);
+  if (currentData.length > 0) {
+    let maxEntry = currentData[0];
+    currentData.forEach(entry => {
       if (entry.value > maxEntry.value) maxEntry = entry;
     });
     document.getElementById('peakDate').textContent = parseDateString(maxEntry.time, true);
