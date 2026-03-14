@@ -15,6 +15,7 @@ const MONTH_COLORS = [
 // Store chart instances
 let mainChartInstance = null;
 let currentChartType = 'line';
+let showMA = true;
 let yearlyData = {
   service_time: [],
   service_rate: [],
@@ -42,7 +43,6 @@ let overallYThresholds = {};
 // DOM Elements
 const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
-const searchBtn = document.getElementById('searchBtn');
 const metricsToggle = document.getElementById('metricsToggle');
 const btnSysCpu = document.getElementById('btnSysCpu');
 const btnHeapUsage = document.getElementById('btnHeapUsage');
@@ -145,6 +145,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           mainChartInstance = instance;
         });
       }
+    });
+  });
+
+  // Bind MA toggle buttons
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      const targetBtn = e.currentTarget;
+      targetBtn.classList.add('active');
+      showMA = targetBtn.dataset.ma === 'on';
+
+      // Refresh chart with current metric
+      const activeBtn = document.querySelector('.metric-btn.active');
+      if (activeBtn) activeBtn.click();
     });
   });
 
@@ -614,6 +628,23 @@ const selectionRangePlugin = {
 };
 
 // Draw or Update Chart
+// Helper to calculate Simple Moving Average
+function calculateSMA(data, period) {
+  const result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      result.push(null);
+    } else {
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        sum += data[i - j] || 0;
+      }
+      result.push(sum / period);
+    }
+  }
+  return result;
+}
+
 function updateChart(canvasId, label, data, color, chartInstance, setInstanceCallback) {
   const ctx = document.getElementById(canvasId).getContext('2d');
 
@@ -650,12 +681,12 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     primaryDataset.pointRadius = 0;
     primaryDataset.pointHoverRadius = 5;
     primaryDataset.segment = {
-      borderColor: ctx => getMonthColor(ctx, color, ''),
-      backgroundColor: ctx => getMonthColor(ctx, color, '80')
+      borderColor: ctx => getMonthColor(ctx, color, '4d'), // Slightly more opaque border (approx 0.3)
+      backgroundColor: ctx => getMonthColor(ctx, color, '25') // Slightly more opaque fill (approx 0.15)
     };
   } else { // bar
-    primaryDataset.backgroundColor = ctx => getMonthColor(ctx, color, '80');
-    primaryDataset.borderColor = ctx => getMonthColor(ctx, color, '');
+    primaryDataset.backgroundColor = ctx => getMonthColor(ctx, color, '25');
+    primaryDataset.borderColor = ctx => getMonthColor(ctx, color, '4d');
   }
   datasets.push(primaryDataset);
 
@@ -679,6 +710,39 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
       order: 1 // In front
     };
     datasets.push(maxDataset);
+  }
+
+  // Add 7-day and 30-day Moving Averages only if enabled
+  if (showMA) {
+    const ma7Data = calculateSMA(values, 7);
+    const ma30Data = calculateSMA(values, 30);
+
+    datasets.push({
+      label: '7일 이동평균',
+      type: 'line',
+      data: ma7Data,
+      borderColor: '#ff4d00', // More vibrant orange-red for better visibility
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false,
+      tension: 0.3,
+      borderDash: [1, 1], // Optional: dashed line for MA
+      order: 0, // Top-most
+      pointStyle: 'line' // Ensure legend shows as line
+    });
+
+    datasets.push({
+      label: '30일 이동평균',
+      type: 'line',
+      data: ma30Data,
+      borderColor: '#682cf3ff', // Violet
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false,
+      tension: 0.3,
+      order: 0,
+      pointStyle: 'line' // Ensure legend shows as line
+    });
   }
 
   if (chartInstance && chartInstance.config.type !== currentChartType) {
@@ -714,7 +778,19 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
         },
         plugins: {
           legend: {
-            display: false
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 20,
+              padding: 10,
+              font: { size: 10 },
+              usePointStyle: true,
+              filter: function(item, chart) {
+                // Filter out the primary metric and Max CPU from the legend
+                return item.text.includes('이동평균');
+              }
+            }
           },
           tooltip: {
             callbacks: {
@@ -1160,7 +1236,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     items.forEach((item, posInDay) => {
       const hour = posInDay % 24;
       if (item.count > 0) {
-        dayHourMap[dayIdx][hour].sum += item.value; 
+        dayHourMap[dayIdx][hour].sum += item.value;
         dayHourMap[dayIdx][hour].count++;
       }
     });

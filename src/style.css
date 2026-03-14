@@ -264,6 +264,48 @@ body {
   color: var(--text-primary);
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ma-toggle-group {
+  display: flex;
+  align-items: center;
+  background-color: var(--sidebar-active);
+  border-radius: 6px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  gap: 4px;
+}
+
+.toggle-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 8px;
+  border-right: 1px solid var(--border-color);
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 .chart-type-toggle {
   display: flex;
   background-color: var(--sidebar-active);

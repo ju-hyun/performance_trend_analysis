@@ -46,9 +46,16 @@
               <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu">시스템CPU</button>
               <button class="metric-btn hidden" data-metric="heap_usage" id="btnHeapUsage">메모리사용률</button>
             </div>
-            <div class="chart-type-toggle">
-              <button class="type-btn active" data-type="line">라인</button>
-              <button class="type-btn" data-type="bar">바</button>
+            <div class="header-controls">
+              <div class="ma-toggle-group" id="maToggle">
+                <span class="toggle-label">이동평균</span>
+                <button class="toggle-btn active" data-ma="on">On</button>
+                <button class="toggle-btn" data-ma="off">Off</button>
+              </div>
+              <div class="chart-type-toggle">
+                <button class="type-btn active" data-type="line">라인</button>
+                <button class="type-btn" data-type="bar">바</button>
+              </div>
             </div>
           </div>
           <div class="chart-container">
