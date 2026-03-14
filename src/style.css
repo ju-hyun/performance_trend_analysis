@@ -326,6 +326,10 @@ body {
   white-space: nowrap;
 }
 
+.metric-btn:focus {
+  outline: none;
+}
+
 .metric-btn:hover:not(.active) {
   background-color: rgba(0, 0, 0, 0.03);
   color: var(--text-primary);
