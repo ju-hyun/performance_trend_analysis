@@ -32,6 +32,7 @@ let selectedEndMonth = null;
 let isSelecting = false;
 let dragStartX = null;
 let dragCurrentX = null;
+let activeSelectionBoundary = 'end'; // 'start' or 'end'
 
 // Global metric thresholds for heatmaps (persisted across period selections)
 let metricThresholds = {};
@@ -520,6 +521,9 @@ const selectionRangePlugin = {
           selectedStartMonth = chart.data.labels[idx1].split('/')[0];
           selectedEndMonth = chart.data.labels[idx2].split('/')[0];
 
+          // Set active boundary based on drag direction
+          activeSelectionBoundary = (dragCurrentX < dragStartX) ? 'start' : 'end';
+
           // Trigger data update
           handleChartSelectionChanged();
         } else {
@@ -535,9 +539,11 @@ const selectionRangePlugin = {
             if (selectedStartMonth === clickedMonth && selectedEndMonth === clickedMonth) {
               selectedStartMonth = null;
               selectedEndMonth = null;
+              activeSelectionBoundary = 'end';
             } else {
               selectedStartMonth = clickedMonth;
               selectedEndMonth = clickedMonth;
+              activeSelectionBoundary = 'end';
             }
             // Trigger data update
             handleChartSelectionChanged();
@@ -1561,6 +1567,92 @@ function getMetricUnit(metric) {
     default: return '';
   }
 }
+
+
+// Keyboard Navigation for Chart Selection
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (!mainChartInstance || !selectedStartMonth || !selectedEndMonth) return;
+
+  const labels = mainChartInstance.data.labels;
+  if (!labels || labels.length === 0) return;
+
+  // Get unique months in order
+  const uniqueMonths = [];
+  labels.forEach(lbl => {
+    const m = lbl.split('/')[0];
+    if (!uniqueMonths.includes(m)) uniqueMonths.push(m);
+  });
+
+  let startIdx = uniqueMonths.indexOf(selectedStartMonth);
+  let endIdx = uniqueMonths.indexOf(selectedEndMonth);
+
+  if (startIdx === -1 || endIdx === -1) return;
+
+  // Swap if needed to ensure normalized range
+  if (startIdx > endIdx) {
+    [startIdx, endIdx] = [endIdx, startIdx];
+  }
+
+  const shift = e.key === 'ArrowLeft' ? -1 : 1;
+
+  if (e.shiftKey) {
+    if (e.key === 'ArrowLeft') {
+      if (activeSelectionBoundary === 'start') {
+        const newStartIdx = startIdx - 1;
+        if (newStartIdx >= 0) {
+          selectedStartMonth = uniqueMonths[newStartIdx];
+        } else return;
+      } else {
+        // activeSelectionBoundary === 'end'
+        if (startIdx === endIdx) {
+          // Switch to start and move left
+          const newStartIdx = startIdx - 1;
+          if (newStartIdx >= 0) {
+            selectedStartMonth = uniqueMonths[newStartIdx];
+            activeSelectionBoundary = 'start';
+          } else return;
+        } else {
+          const newEndIdx = endIdx - 1;
+          selectedEndMonth = uniqueMonths[newEndIdx];
+        }
+      }
+    } else {
+      // ArrowRight
+      if (activeSelectionBoundary === 'end') {
+        const newEndIdx = endIdx + 1;
+        if (newEndIdx < uniqueMonths.length) {
+          selectedEndMonth = uniqueMonths[newEndIdx];
+        } else return;
+      } else {
+        // activeSelectionBoundary === 'start'
+        if (startIdx === endIdx) {
+          // Switch to end and move right
+          const newEndIdx = endIdx + 1;
+          if (newEndIdx < uniqueMonths.length) {
+            selectedEndMonth = uniqueMonths[newEndIdx];
+            activeSelectionBoundary = 'end';
+          } else return;
+        } else {
+          const newStartIdx = startIdx + 1;
+          selectedStartMonth = uniqueMonths[newStartIdx];
+        }
+      }
+    }
+    handleChartSelectionChanged();
+    mainChartInstance.update();
+  } else {
+    // Shift the entire range
+    const newStartIdx = startIdx + shift;
+    const newEndIdx = endIdx + shift;
+    if (newStartIdx >= 0 && newEndIdx < uniqueMonths.length) {
+      selectedStartMonth = uniqueMonths[newStartIdx];
+      selectedEndMonth = uniqueMonths[newEndIdx];
+      handleChartSelectionChanged();
+      mainChartInstance.update();
+    }
+  }
+});
 
 function parseDateString(dateStr, full = false) {
   if (!dateStr || dateStr.length < 8) return dateStr;
