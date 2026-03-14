@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateSummaryCardsDisabledState();
 
   // Bind events
-  searchBtn.addEventListener('click', loadData);
   domainSelect.addEventListener('change', async (e) => {
     // Attempt to load instances whenever a domain is selected
     if (e.target.value) {
       await loadInstances(e.target.value);
     }
     updateSummaryCardsDisabledState();
+    loadData(); // Auto-fetch data when domain changes
   });
 
   // Bind metric toggle buttons
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
     updateSummaryCardsDisabledState();
-    handleChartSelectionChanged(); // Refresh data view
+    loadData(); // Auto-fetch data when instance changes
   });
 
   // Bind chart type toggles
@@ -275,8 +275,6 @@ async function loadData() {
   const domainId = domainSelect.value;
   const instanceId = instanceSelect.value;
 
-  searchBtn.disabled = true;
-  searchBtn.textContent = '조회 중...';
 
   // Reset thresholds when a new primary search is performed
   metricThresholds = {};
@@ -358,9 +356,6 @@ async function loadData() {
   } catch (error) {
     console.error('Data loading failed:', error);
     mockDataOnFailPartial();
-  } finally {
-    searchBtn.disabled = false;
-    searchBtn.textContent = '조회';
   }
 }
 
