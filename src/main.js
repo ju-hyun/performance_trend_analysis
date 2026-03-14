@@ -1,10 +1,11 @@
 import Chart from 'chart.js/auto';
+import { config } from './config.js';
 
 // Global variables
-const API_BASE = '/api/dbmetrics';
-const DOMAIN_API_BASE = '/api/domain';
-const INSTANCE_API_BASE = '/api/instance';
-const TOKEN = 'd5HJuONXNZf';
+const API_BASE = (config.API_DOMAIN || '') + '/api/dbmetrics';
+const DOMAIN_API_BASE = (config.API_DOMAIN || '') + '/api/domain';
+const INSTANCE_API_BASE = (config.API_DOMAIN || '') + '/api/instance';
+const TOKEN = config.TOKEN;
 
 const MONTH_COLORS = [
   '#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#34d399',
