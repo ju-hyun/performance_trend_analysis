@@ -521,7 +521,7 @@ const selectionRangePlugin = {
           let val2 = xAxis.getValueForPixel(dragCurrentX);
 
           if (val1 > val2) {
-            const temp = val1;
+            const val = d.yValue;
             val1 = val2;
             val2 = temp;
           }
@@ -1160,14 +1160,12 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       const chunkStartStr = formatDateParam(currentStart);
       const chunkEndStr = formatDateParam(currentEnd);
 
-      // Determine what metric to fetch for heatmap value
-      // Overall heatmap always uses Hit수 (service_count) on Y-axis
-      // Day x Hour heatmap uses the selected metric on Z-axis (color)
-      const metricToFetch = currentMetric === 'service_count' ? 'service_time' : currentMetric;
+      const metricToFetch = currentMetric;
+      const isHitSelected = (currentMetric === 'service_count');
 
       timePromises.push(
-        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, metricToFetch)
-          .catch(err => { console.warn(`Heatmap ${metricToFetch} chunk failed`, err); return []; })
+        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, isHitSelected ? 'service_time' : metricToFetch)
+          .catch(err => { console.warn(`Heatmap primary chunk failed`, err); return []; })
       );
       countPromises.push(
         fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
@@ -1192,7 +1190,8 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       const countItem = heatmapCountData[idx];
       return {
         time: timeItem.time,
-        value: timeItem.value, // This is currentMetric value (or service_time if Hit수 is selected)
+        value: (currentMetric === 'service_count') ? (countItem ? countItem.value : 0) : timeItem.value, // For Day/Hour
+        yValue: timeItem.value, // Always the "performance" metric for Overall Y-axis (or service_time if hit selected)
         count: countItem ? countItem.value : 0
       };
     });
@@ -1395,7 +1394,8 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     medianY = overallYThresholds[metric].median;
     maxY = overallYThresholds[metric].max;
   } else {
-    const times = validData.map(d => d.value).sort((a, b) => a - b);
+    // Use yValue for Y-axis (performance metric)
+    const times = validData.map(d => d.yValue).sort((a, b) => a - b);
     medianY = d3Median(times);
     maxY = Math.max(...times, 100);
     // Cache for this metric
@@ -1433,7 +1433,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   const radius = 12;
   const hexbin = d3.hexbin()
     .x(d => xScale(d.count))
-    .y(d => yScale(d.value))
+    .y(d => yScale(d.yValue))
     .radius(radius)
     .extent([[0, 0], [width, height]]);
 
@@ -1475,17 +1475,17 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .on("mouseover", function (event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
       // Find min ~ max ranges of the bin for the tooltip
-      const minTime = d3.min(d, p => p.value); // Changed from p.responseTime to p.value
-      const maxTime = d3.max(d, p => p.value); // Changed from p.responseTime to p.value
+      const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const minTime = d3.min(d, p => p.yValue); // Changed from p.responseTime to p.value
+      const maxTime = d3.max(d, p => p.yValue); // Changed from p.responseTime to p.value
       const minCount = d3.min(d, p => p.count);
       const maxCount = d3.max(d, p => p.count);
 
-      const formatVal = (v) => Number.isInteger(v) ? v.toString() : v.toFixed(2);
       const timeRange = minTime === maxTime ? formatVal(minTime) : `${formatVal(minTime)} ~ ${formatVal(maxTime)}`;
       const countRange = minCount === maxCount ? formatVal(minCount) : `${formatVal(minCount)} ~ ${formatVal(maxCount)}`;
 
-      const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-      const labelName = isHitSelected ? 'Res.Time' : 'Value';
+      const unit = isHitSelected ? 'Hits' : getMetricUnit(metric);
+      const labelName = document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || 'Value';
       const tooltipText = `Hits: ${countRange}<br/>${labelName}: ${timeRange} ${unit}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
@@ -1522,7 +1522,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // Update Footer Label (External to SVG)
   const labelY = document.getElementById('overallHeatmapLabelY');
   if (labelY) {
-    const metricDisplayName = isHitSelected ? '응답시간' : document.querySelector(`.metric-btn[data-metric="${metric}"]`).textContent;
+    const metricDisplayName = isHitSelected ? '응답시간' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
     labelY.textContent = `${metricDisplayName} (${unit})`;
   }
 }
