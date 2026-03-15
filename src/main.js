@@ -681,12 +681,12 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     primaryDataset.pointRadius = 0;
     primaryDataset.pointHoverRadius = 5;
     primaryDataset.segment = {
-      borderColor: ctx => getMonthColor(ctx, color, '4d'), // Slightly more opaque border (approx 0.3)
-      backgroundColor: ctx => getMonthColor(ctx, color, '25') // Slightly more opaque fill (approx 0.15)
+      borderColor: ctx => getMonthColor(ctx, color, showMA ? '4d' : ''), // Increased border alpha (0.15 -> 0.3)
+      backgroundColor: ctx => getMonthColor(ctx, color, showMA ? '26' : '66') // Increased fill alpha (0.08 -> 0.15)
     };
   } else { // bar
-    primaryDataset.backgroundColor = ctx => getMonthColor(ctx, color, '25');
-    primaryDataset.borderColor = ctx => getMonthColor(ctx, color, '4d');
+    primaryDataset.backgroundColor = ctx => getMonthColor(ctx, color, showMA ? '26' : '66');
+    primaryDataset.borderColor = ctx => getMonthColor(ctx, color, showMA ? '4d' : '');
   }
   datasets.push(primaryDataset);
 
