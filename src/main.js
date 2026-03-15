@@ -181,12 +181,23 @@ function initHelpSystem() {
 
   const openHelpPopup = (sectionId = 'general') => {
     const url = `help.html#${sectionId}`;
+    const windowName = 'PerformanceHelpPopup';
     const features = 'width=900,height=850,scrollbars=yes,resizable=yes';
-    const helpWin = window.open(url, 'PerformanceHelp', features);
-    if (helpWin) helpWin.focus();
+
+    // Using a global property to maintain the reference across possible re-initializations
+    if (window.ptaHelpWindow && !window.ptaHelpWindow.closed) {
+      // Update just the hash to trigger internal navigation/scrolling
+      window.ptaHelpWindow.location.hash = sectionId;
+      window.ptaHelpWindow.focus();
+    } else {
+      // Open new window and save to global property
+      window.ptaHelpWindow = window.open(url, windowName, features);
+    }
   };
 
-  if (mainHelpBtn) mainHelpBtn.addEventListener('click', () => openHelpPopup('main-chart'));
+  if (mainHelpBtn) {
+    mainHelpBtn.addEventListener('click', () => openHelpPopup('main-chart'));
+  }
 
   contextHelpBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
