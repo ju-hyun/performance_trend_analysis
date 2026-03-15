@@ -383,7 +383,7 @@ async function fetchMetricData(domainId, instanceId, startTime, endTime, interva
   if (instanceId) {
     url.searchParams.append('instance_id', instanceId);
   }
-  url.searchParams.append('time_pattern', 'yyyyMMdd');
+  url.searchParams.append('time_pattern', 'yyyyMMddHH');
   url.searchParams.append('start_time', startTime);
   url.searchParams.append('end_time', endTime);
   url.searchParams.append('interval_minute', intervalMinute);
@@ -1627,7 +1627,8 @@ function formatDateParam(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
-  return `${y}${m}${d}`;
+  const h = String(date.getHours()).padStart(2, '0');
+  return `${y}${m}${d}${h}`;
 }
 
 function getMetricUnit(metric) {
