@@ -28,6 +28,11 @@ let yearlyData = {
 
 let currentMetric = 'service_time';
 
+function getCurrentDomainId() {
+  const lastItem = currentSelectedPath[currentSelectedPath.length - 1];
+  return (lastItem && lastItem.type === 'domain') ? lastItem.id : null;
+}
+
 // Chart Selection State
 let selectedStartMonth = null;
 let selectedEndMonth = null;
@@ -40,8 +45,25 @@ let activeSelectionBoundary = 'end'; // 'start' or 'end'
 let metricThresholds = {};
 let overallYThresholds = {};
 
+function updateSummaryCardsDisabledState() {
+  if (!instanceSelect) return;
+  const isInstanceSelected = !!instanceSelect.value;
+  const cpuCard = document.getElementById('avgSysCpu')?.closest('.summary-card');
+  const memCard = document.getElementById('avgHeapUsage')?.closest('.summary-card');
+
+  if (cpuCard && memCard) {
+    if (isInstanceSelected) {
+      cpuCard.classList.remove('disabled');
+      memCard.classList.remove('disabled');
+    } else {
+      cpuCard.classList.add('disabled');
+      memCard.classList.add('disabled');
+    }
+  }
+}
+
 // DOM Elements
-const domainSelect = document.getElementById('domainSelect');
+// const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
 const metricsToggle = document.getElementById('metricsToggle');
 const btnSysCpu = document.getElementById('btnSysCpu');
@@ -75,33 +97,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
 
-  function updateSummaryCardsDisabledState() {
-    const isInstanceSelected = !!instanceSelect.value;
-    const cpuCard = document.getElementById('avgSysCpu').closest('.summary-card');
-    const memCard = document.getElementById('avgHeapUsage').closest('.summary-card');
 
-    if (cpuCard && memCard) {
-      if (isInstanceSelected) {
-        cpuCard.classList.remove('disabled');
-        memCard.classList.remove('disabled');
-      } else {
-        cpuCard.classList.add('disabled');
-        memCard.classList.add('disabled');
-      }
-    }
-  }
+  // updateSummaryCardsDisabledState(); // No domain selected initially? 
 
-  updateSummaryCardsDisabledState();
-
-  // Bind events
+  // In the new hierarchical selector, 'change' event will be handled inside updateSelectedPath
+  /*
   domainSelect.addEventListener('change', async (e) => {
-    // Attempt to load instances whenever a domain is selected
     if (e.target.value) {
       await loadInstances(e.target.value);
     }
     updateSummaryCardsDisabledState();
-    loadData(); // Auto-fetch data when domain changes
+    loadData();
   });
+  */
 
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
@@ -248,6 +256,10 @@ function initHelpSystem() {
   });
 }
 
+// Hierarchical Selector State
+let domainTree = [];
+let currentSelectedPath = []; // Array of { id: string, name: string, type: 'group' | 'domain' }
+
 async function loadDomains() {
   const url = new URL(DOMAIN_API_BASE, window.location.origin);
   url.searchParams.append('token', TOKEN);
@@ -267,54 +279,245 @@ async function loadDomains() {
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const data = await response.json();
-    let domains = data.result || [];
-
+    let flatDomains = data.result || [];
+    
     // Sort by domainId ascending
-    domains.sort((a, b) => a.domainId - b.domainId);
+    flatDomains.sort((a, b) => a.domainId - b.domainId);
 
-    // Clear and populate select box
-    domainSelect.innerHTML = '';
-    domains.forEach(domain => {
-      const option = document.createElement('option');
-      option.value = domain.domainId;
-      option.textContent = domain.name;
-      domainSelect.appendChild(option);
-    });
-
-    // Load instances for the initially selected domain
-    if (domainSelect.value) {
-      await loadInstances(domainSelect.value);
+    // Transform flat list to tree structure based on groupHierarchy
+    domainTree = buildDomainTree(flatDomains);
+    
+    // Initial selection: First domain found in the tree
+    const firstDomain = findFirstDomain(domainTree);
+    if (firstDomain) {
+      updateSelectedPath(firstDomain.path);
     }
+
+    renderHierarchicalSelector();
     return true;
 
   } catch (error) {
     console.error('Failed to load domains. URL:', urlString, '\nError:', error);
     if (error.name === 'TypeError') {
-      console.warn('Network error or CORS issue suspected. Check if the API server is reachable or if the request is being blocked.');
+      console.warn('Network error or CORS issue suspected.');
     }
 
-    // For loadDomains, we want to know if it was a config error or something else
     if (document.querySelector('.config-error-overlay')) return false;
-    
-    // Fallback to mock domains
-    const mockDomains = [
-      { domainId: '1000', name: 'Sample Domain A (Mock)' },
-      { domainId: '1001', name: 'Sample Domain B (Mock)' }
+
+    // Fallback to mock domains with hierarchy
+    const mockFlatDomains = [
+      { domainId: '1000', name: 'REALTIME, ANALYSIS', groupHierarchy: ['JENNIFER DEMO', 'MSA'] },
+      { domainId: '1001', name: 'MSA-2nd', groupHierarchy: ['JENNIFER DEMO', 'MSA'] },
+      { domainId: '1002', name: 'MSA-3rd', groupHierarchy: ['JENNIFER DEMO', 'MSA'] },
+      { domainId: '1003', name: 'K8s ASYNC', groupHierarchy: ['JENNIFER DEMO', 'K8s ASYNC'] },
+      { domainId: '1004', name: 'Total', groupHierarchy: ['Total'] },
+      { domainId: '1005', name: 'Azure-1', groupHierarchy: ['kevin', 'Azure'] },
     ];
 
-    domainSelect.innerHTML = '';
-    mockDomains.forEach(domain => {
-      const option = document.createElement('option');
-      option.value = domain.domainId;
-      option.textContent = domain.name;
-      domainSelect.appendChild(option);
-    });
-
-    if (domainSelect.value) {
-      await loadInstances(domainSelect.value);
+    domainTree = buildDomainTree(mockFlatDomains);
+    const firstDomain = findFirstDomain(domainTree);
+    if (firstDomain) {
+      updateSelectedPath(firstDomain.path);
     }
+    renderHierarchicalSelector();
     return false;
   }
+}
+
+function buildDomainTree(flatDomains) {
+  const tree = [];
+
+  flatDomains.forEach(domain => {
+    let currentLevel = tree;
+    const hierarchy = domain.groupHierarchy || ['未分類ドメイン'];
+    
+    hierarchy.forEach((groupName, index) => {
+      let group = currentLevel.find(item => item.name === groupName && item.type === 'group');
+      if (!group) {
+        group = {
+          name: groupName,
+          type: 'group',
+          children: []
+        };
+        currentLevel.push(group);
+      }
+      currentLevel = group.children;
+    });
+
+    currentLevel.push({
+      id: domain.domainId,
+      name: domain.name,
+      type: 'domain'
+    });
+  });
+
+  return tree;
+}
+
+function findFirstDomain(nodes, path = []) {
+  for (const node of nodes) {
+    const currentPath = [...path, { id: node.id, name: node.name, type: node.type }];
+    if (node.type === 'domain') {
+      return { node, path: currentPath };
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findFirstDomain(node.children, currentPath);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function updateSelectedPath(path) {
+  currentSelectedPath = path;
+  const lastItem = path[path.length - 1];
+  if (lastItem && lastItem.type === 'domain') {
+    // Sync with existing logic
+    // We need a way to trigger data reload when domainId changes
+    const domainId = lastItem.id;
+    // Call existing loadInstances or whatever was bound to domainSelect change
+    loadInstances(domainId).then(() => {
+      updateSummaryCardsDisabledState();
+      loadData();
+    });
+  }
+}
+
+function renderHierarchicalSelector() {
+  const container = document.getElementById('breadcrumbContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  currentSelectedPath.forEach((item, index) => {
+    // Add separator if not the first item
+    if (index > 0) {
+      const sep = document.createElement('div');
+      sep.className = 'breadcrumb-separator';
+      sep.textContent = '>';
+      container.appendChild(sep);
+    }
+
+    const breadcrumb = document.createElement('div');
+    breadcrumb.className = 'breadcrumb-item';
+    
+    // Icon (Cube style)
+    const icon = document.createElement('span');
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
+    
+    const text = document.createElement('span');
+    text.textContent = item.name;
+    
+    breadcrumb.appendChild(icon);
+    breadcrumb.appendChild(text);
+    
+    // Dropdown arrow for groups
+    if (item.type === 'group' || index === currentSelectedPath.length - 1) {
+       const arrow = document.createElement('span');
+       arrow.style.marginLeft = '4px';
+       arrow.style.fontSize = '0.7rem';
+       arrow.textContent = '▼';
+       breadcrumb.appendChild(arrow);
+    }
+
+    breadcrumb.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.selector-popover').forEach(p => p.classList.remove('active'));
+      
+      let levelItems = domainTree;
+      const basePath = currentSelectedPath.slice(0, index);
+      for (let i = 0; i < index; i++) {
+        const found = levelItems.find(n => n.name === currentSelectedPath[i].name);
+        if (found) levelItems = found.children;
+      }
+      
+      const popover = createPopover(levelItems, (selectedPath) => {
+        const finalPath = [...basePath, ...selectedPath];
+        const lastSelected = finalPath[finalPath.length - 1];
+
+        if (lastSelected.type === 'domain') {
+          updateSelectedPath(finalPath);
+          renderHierarchicalSelector();
+        } else {
+          // Find first domain in selected subgroup
+          // We need to look into the node tree to find it
+          let targetNode = domainTree;
+          for (let i = 0; i < finalPath.length; i++) {
+            const found = targetNode.find(n => n.name === finalPath[i].name);
+            if (found) targetNode = (found.type === 'group') ? found.children : [found];
+          }
+          const firstInGroup = findFirstDomain(targetNode, finalPath);
+          if (firstInGroup) {
+            updateSelectedPath(firstInGroup.path);
+            renderHierarchicalSelector();
+          }
+        }
+      });
+      
+      breadcrumb.appendChild(popover);
+      setTimeout(() => popover.classList.add('active'), 0);
+    });
+
+    container.appendChild(breadcrumb);
+  });
+}
+
+function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
+  const popover = document.createElement('div');
+  popover.className = 'selector-popover';
+  if (level > 0) popover.classList.add('submenu');
+  
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'popover-item';
+    if (item.children && item.children.length > 0) el.classList.add('has-children');
+    
+    // Path including current item
+    const itemPath = [...currentLevelPath, { id: item.id, name: item.name, type: item.type }];
+
+    el.innerHTML = `
+      <div class="popover-item-content">
+        <span class="popover-item-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        </span>
+        <span>${item.name}</span>
+      </div>
+    `;
+    
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onSelect(itemPath);
+      document.querySelectorAll('.selector-popover').forEach(p => p.classList.remove('active'));
+    });
+
+    if (item.type === 'group' && item.children && item.children.length > 0) {
+      let submenu = null;
+      const showSubmenu = () => {
+        if (!submenu) {
+          submenu = createPopover(item.children, onSelect, level + 1, itemPath);
+          el.appendChild(submenu);
+        }
+        submenu.classList.add('active');
+        submenu.style.position = 'absolute';
+        submenu.style.left = '100.2%';
+        submenu.style.top = '-6px';
+      };
+      const hideSubmenu = () => { if (submenu) submenu.classList.remove('active'); };
+      el.addEventListener('mouseenter', showSubmenu);
+      el.addEventListener('mouseleave', hideSubmenu);
+    }
+    popover.appendChild(el);
+  });
+  
+  if (level === 0) {
+    const closeHandler = (e) => {
+      if (!popover.contains(e.target) && !e.target.closest('.breadcrumb-item')) {
+        popover.classList.remove('active');
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    document.addEventListener('click', closeHandler);
+  }
+  return popover;
 }
 
 async function loadInstances(domainId) {
@@ -378,7 +581,15 @@ async function loadData() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
-  const domainId = domainSelect.value;
+  // Get domainId from hierarchical selector state
+  const domainId = getCurrentDomainId();
+  
+  if (!domainId) {
+    console.warn('No domain selected. Skipping loadData.');
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
+    return;
+  }
+
   const instanceId = instanceSelect.value;
 
 
@@ -468,6 +679,10 @@ async function loadData() {
 }
 
 async function fetchMetricData(domainId, instanceId, startTime, endTime, intervalMinute, metrics) {
+  if (!domainId) {
+    console.error('fetchMetricData called without domainId');
+    return [];
+  }
   const endpoint = instanceId ? `${API_BASE}/instance` : `${API_BASE}/domain`;
   const url = new URL(endpoint, window.location.origin);
 
@@ -1126,7 +1341,7 @@ function updateChartStatsGrid(labels, chart) {
 async function handleChartSelectionChanged() {
   const rangeDisplay = document.getElementById('selectedRangeDisplay');
   const metrics = currentMetric;
-  const domainId = domainSelect.value;
+  const domainId = getCurrentDomainId();
   const instanceId = instanceSelect.value;
 
   const currentMetricData = yearlyData[currentMetric] || [];

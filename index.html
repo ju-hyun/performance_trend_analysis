@@ -28,12 +28,15 @@
 
       <!-- Filters Section -->
       <section class="filters-card">
-        <div class="filter-group">
+        <div class="filter-group domain-filter-group">
           <label>ドメイン</label>
-          <select id="domainSelect" class="form-select"></select>
-
+          <div id="hierarchicalDomainSelector" class="hierarchical-selector">
+            <div class="breadcrumb-container" id="breadcrumbContainer">
+              <div class="breadcrumb-item loading">データロード中...</div>
+            </div>
+          </div>
         </div>
-        <div class="filter-group">
+        <div class="filter-group instance-filter-group">
           <label>インスタンス</label>
           <select id="instanceSelect" class="form-select">
             <option value="">ドメイン全体</option>
@@ -41,7 +44,12 @@
         </div>
         <div class="filter-actions">
           <button id="mainHelpBtn" class="help-btn-circle" title="ヘルプ">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
           </button>
         </div>
       </section>
@@ -223,7 +231,12 @@
             <div class="title-with-help">
               <h3>データ分布 (Overall)</h3>
               <button class="help-btn-small" data-help-section="overall" title="分析ガイド">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
               </button>
             </div>
             <div class="heatmap-legend">
@@ -246,7 +259,12 @@
             <div class="title-with-help">
               <h3>曜日 x 時間帯別分布</h3>
               <button class="help-btn-small" data-help-section="dayhour" title="分析ガイド">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
               </button>
             </div>
             <div class="heatmap-legend">
