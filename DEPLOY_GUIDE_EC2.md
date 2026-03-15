@@ -151,7 +151,39 @@ http://<EC2-퍼블릭-IP>:5177
 
 ---
 
-## 6. 트러블슈팅 (Troubleshooting)
+## 6. HTTPS(SSL) 적용 가이드 (Optional)
+
+무료 SSL 인증서인 Let's Encrypt를 사용하여 HTTPS를 적용하는 방법입니다. **반드시 도메인이 EC2 IP에 연결되어 있어야 합니다.**
+
+### 보안 그룹 설정 확인
+- `Inbound Rules`에 **HTTPS (443)** 포트가 열려 있는지 확인합니다.
+
+### Certbot 설치 및 인증서 발급
+
+#### Amazon Linux 2023
+```bash
+sudo dnf install -y python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+```
+
+#### Ubuntu 22.04+
+```bash
+sudo apt update
+sudo apt install -y python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+```
+
+### 인증서 자동 갱신 설정
+Let's Encrypt 인증서는 90일마다 만료되므로 자동 갱신을 설정해둡니다.
+```bash
+# 갱신 테스트
+sudo certbot renew --dry-run
+```
+(대부분의 패키지는 설치 시 자동으로 크론탭이나 타이머에 자동 갱신 로직을 등록합니다.)
+
+---
+
+## 7. 트러블슈팅 (Troubleshooting)
 
 ### 권한 문제 (Nginx 403 Forbidden)
 Nginx 프로세스가 프로젝트의 `dist` 폴더에 접근할 수 있도록 상위 디렉토리에 실행 권한을 부여해야 할 수 있습니다.
