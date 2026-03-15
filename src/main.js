@@ -235,7 +235,7 @@ async function loadDomains() {
 
 async function loadInstances(domainId) {
   if (!domainId) {
-    instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
+    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
     return;
   }
 
@@ -259,7 +259,7 @@ async function loadInstances(domainId) {
     instances.sort((a, b) => a.instanceId - b.instanceId);
 
     // Clear and populate select box
-    instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
+    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
     instances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -275,7 +275,7 @@ async function loadInstances(domainId) {
       { instanceId: '2', name: `Instance-${domainId}-2` }
     ];
 
-    instanceSelect.innerHTML = '<option value="">전체 (도메인 단위조회)</option>';
+    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -349,7 +349,7 @@ async function loadData() {
 
     // Update UI Elements for Chart
     const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
-    const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
+    const metricDisplayName = activeBtn ? activeBtn.textContent : '応答時間';
 
     // Update main chart
     updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
@@ -360,7 +360,7 @@ async function loadData() {
     selectedStartMonth = null;
     selectedEndMonth = null;
     const rangeDisplay = document.getElementById('selectedRangeDisplay');
-    if (rangeDisplay) rangeDisplay.textContent = '전체 (1년)';
+    if (rangeDisplay) rangeDisplay.textContent = '全体 (1年)';
 
     // Update Summary Cards
     const curData = yearlyData[currentMetric] || [];
@@ -698,13 +698,13 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
   // Handle System CPU dual line (Avg + Max) - Force combo chart for visibility
   if (currentMetric === 'sys_cpu' && yearlyData['max_sys_cpu'].length > 0) {
     // 1. Re-adjust Primary (Avg) style for CPU
-    primaryDataset.label = '평균 CPU';
+    primaryDataset.label = '平均CPU';
     primaryDataset.order = 2; // Behind max line
 
     // 2. Add Max CPU as a forced Line
     const maxCpuData = yearlyData['max_sys_cpu'].map(item => item.value);
     const maxDataset = {
-      label: '최대 CPU',
+      label: '最大CPU',
       type: 'line', // Always line
       data: maxCpuData,
       borderWidth: 2,
@@ -723,7 +723,7 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     const ma30Data = calculateSMA(values, 30);
 
     datasets.push({
-      label: '7일 이동평균',
+      label: '7日移動平均',
       type: 'line',
       data: ma7Data,
       borderColor: '#ff4d00', // More vibrant orange-red for better visibility
@@ -737,7 +737,7 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     });
 
     datasets.push({
-      label: '30일 이동평균',
+      label: '30日移動平均',
       type: 'line',
       data: ma30Data,
       borderColor: '#682cf3ff', // Violet
@@ -791,9 +791,9 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
               padding: 10,
               font: { size: 10 },
               usePointStyle: true,
-              filter: function(item, chart) {
+              filter: function (item, chart) {
                 // Filter out the primary metric and Max CPU from the legend
-                return item.text.includes('이동평균');
+                return item.text.includes('移動平均');
               }
             }
           },
@@ -993,7 +993,7 @@ function updateChartStatsGrid(labels, chart) {
 
     let avgText;
     const metricLabel = currentMetricLabelCache || '';
-    if (metricLabel.includes('응답시간') || metricLabel.includes('Response Time')) {
+    if (metricLabel.includes('応答時間') || metricLabel.includes('Response Time')) {
       avgText = Math.round(d.avg).toLocaleString();
     } else if (metricLabel.includes('TPS')) {
       avgText = d.avg.toFixed(2);
@@ -1040,7 +1040,7 @@ async function handleChartSelectionChanged() {
   let endIdx = -1;
 
   if (!selectedStartMonth || !selectedEndMonth) {
-    rangeDisplay.textContent = '전체 (1년)';
+    rangeDisplay.textContent = '全体 (1年)';
     // Reset to full data
     updateSummaryCardsPartial(0, currentMetricData.length - 1);
 
@@ -1303,13 +1303,13 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
       const formatThreshold = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      legendGoodText.innerHTML = `안정 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
-      legendWarningText.innerHTML = `경계 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
-      legendDangerText.innerHTML = `높음 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendGoodText.innerHTML = `安定 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
+      legendWarningText.innerHTML = `警戒 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `高 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
     } else {
-      legendGoodText.textContent = '안정';
-      legendWarningText.textContent = '경계';
-      legendDangerText.textContent = '높음';
+      legendGoodText.textContent = '安定';
+      legendWarningText.textContent = '警戒';
+      legendDangerText.textContent = '高';
     }
   }
 
@@ -1365,7 +1365,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   if (!container) return;
 
   if (!data || data.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">데이터가 없습니다.</div>';
+    container.innerHTML = '<div class="heatmap-placeholder">有効なデータがありません。</div>';
     return;
   }
 
@@ -1522,7 +1522,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // Update Footer Label (External to SVG)
   const labelY = document.getElementById('overallHeatmapLabelY');
   if (labelY) {
-    const metricDisplayName = isHitSelected ? '응답시간' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
+    const metricDisplayName = isHitSelected ? '応答時間' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
     labelY.textContent = `${metricDisplayName} (${unit})`;
   }
 }
@@ -1640,7 +1640,7 @@ function getMetricUnit(metric) {
   switch (metric) {
     case 'service_time': return 'ms';
     case 'service_rate': return 'TPS';
-    case 'concurrent_user': return '명';
+    case 'concurrent_user': return '人';
     case 'service_count': return 'Hits';
     case 'sys_cpu':
     case 'max_sys_cpu':
