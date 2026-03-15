@@ -1646,6 +1646,17 @@ function getMetricUnit(metric) {
 
 // Keyboard Navigation for Chart Selection
 window.addEventListener('keydown', (e) => {
+  // Handle ESC key to deselect
+  if (e.key === 'Escape') {
+    if (selectedStartMonth || selectedEndMonth) {
+      selectedStartMonth = null;
+      selectedEndMonth = null;
+      handleChartSelectionChanged();
+      if (mainChartInstance) mainChartInstance.update();
+    }
+    return;
+  }
+
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
   if (!mainChartInstance || !selectedStartMonth || !selectedEndMonth) return;
 
