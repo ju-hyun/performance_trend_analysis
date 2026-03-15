@@ -1303,13 +1303,13 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
       const formatThreshold = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      legendGoodText.innerHTML = `양호 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
-      legendWarningText.innerHTML = `주의 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
-      legendDangerText.innerHTML = `나쁨 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendGoodText.innerHTML = `안정 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
+      legendWarningText.innerHTML = `경계 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `높음 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
     } else {
-      legendGoodText.textContent = '양호';
-      legendWarningText.textContent = '주의';
-      legendDangerText.textContent = '나쁨';
+      legendGoodText.textContent = '안정';
+      legendWarningText.textContent = '경계';
+      legendDangerText.textContent = '높음';
     }
   }
 
