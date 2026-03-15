@@ -181,7 +181,7 @@ body {
 }
 
 .summary-card h3 {
-  font-size: 0.85rem;
+  font-size: 0.80rem;
   font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: 0;
@@ -543,13 +543,27 @@ body {
 }
 
 @keyframes premium-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; transform: scale(0.98); }
-  50% { opacity: 1; transform: scale(1); }
+
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Responsiveness */
