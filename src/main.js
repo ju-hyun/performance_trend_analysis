@@ -63,9 +63,7 @@ function updateSummaryCardsDisabledState() {
 }
 
 // DOM Elements
-// const domainSelect = document.getElementById('domainSelect');
 const instanceSelect = document.getElementById('instanceSelect');
-const metricsToggle = document.getElementById('metricsToggle');
 const btnSysCpu = document.getElementById('btnSysCpu');
 const btnHeapUsage = document.getElementById('btnHeapUsage');
 
@@ -82,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const missingVars = [];
   if (!TOKEN) missingVars.push('VITE_API_TOKEN');
   if (!config.BASE_URL) missingVars.push('VITE_API_BASE_URL');
-  
+
   if (missingVars.length > 0) {
     showConfigError(`${missingVars.join(' and ')} is not defined in .env file.`);
     return;
@@ -96,20 +94,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
-
-
-  // updateSummaryCardsDisabledState(); // No domain selected initially? 
-
-  // In the new hierarchical selector, 'change' event will be handled inside updateSelectedPath
-  /*
-  domainSelect.addEventListener('change', async (e) => {
-    if (e.target.value) {
-      await loadInstances(e.target.value);
-    }
-    updateSummaryCardsDisabledState();
-    loadData();
-  });
-  */
 
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
@@ -213,7 +197,7 @@ function showConfigError(message, title = 'Configuration Error') {
   // Ensure the overlay is shown after a tiny delay so the background content is rendered
   setTimeout(() => {
     document.body.appendChild(overlay);
-    
+
     // Completely hide/remove loading overlay if it exists
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) {
@@ -280,13 +264,13 @@ async function loadDomains() {
 
     const data = await response.json();
     let flatDomains = data.result || [];
-    
+
     // Sort by domainId ascending
     flatDomains.sort((a, b) => a.domainId - b.domainId);
 
     // Transform flat list to tree structure based on groupHierarchy
     domainTree = buildDomainTree(flatDomains);
-    
+
     // Initial selection: First domain found in the tree
     const firstDomain = findFirstDomain(domainTree);
     if (firstDomain) {
@@ -330,7 +314,7 @@ function buildDomainTree(flatDomains) {
   flatDomains.forEach(domain => {
     let currentLevel = tree;
     const hierarchy = domain.groupHierarchy || ['未分類ドメイン'];
-    
+
     hierarchy.forEach((groupName, index) => {
       let group = currentLevel.find(item => item.name === groupName && item.type === 'group');
       if (!group) {
@@ -399,37 +383,37 @@ function renderHierarchicalSelector() {
 
     const breadcrumb = document.createElement('div');
     breadcrumb.className = 'breadcrumb-item';
-    
+
     // Icon (Cube style)
     const icon = document.createElement('span');
     icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
-    
+
     const text = document.createElement('span');
     text.textContent = item.name;
-    
+
     breadcrumb.appendChild(icon);
     breadcrumb.appendChild(text);
-    
+
     // Dropdown arrow for groups
     if (item.type === 'group' || index === currentSelectedPath.length - 1) {
-       const arrow = document.createElement('span');
-       arrow.style.marginLeft = '4px';
-       arrow.style.fontSize = '0.7rem';
-       arrow.textContent = '▼';
-       breadcrumb.appendChild(arrow);
+      const arrow = document.createElement('span');
+      arrow.style.marginLeft = '4px';
+      arrow.style.fontSize = '0.7rem';
+      arrow.textContent = '▼';
+      breadcrumb.appendChild(arrow);
     }
 
     breadcrumb.addEventListener('click', (e) => {
       e.stopPropagation();
       document.querySelectorAll('.selector-popover').forEach(p => p.classList.remove('active'));
-      
+
       let levelItems = domainTree;
       const basePath = currentSelectedPath.slice(0, index);
       for (let i = 0; i < index; i++) {
         const found = levelItems.find(n => n.name === currentSelectedPath[i].name);
         if (found) levelItems = found.children;
       }
-      
+
       const popover = createPopover(levelItems, (selectedPath) => {
         const finalPath = [...basePath, ...selectedPath];
         const lastSelected = finalPath[finalPath.length - 1];
@@ -452,7 +436,7 @@ function renderHierarchicalSelector() {
           }
         }
       });
-      
+
       breadcrumb.appendChild(popover);
       setTimeout(() => popover.classList.add('active'), 0);
     });
@@ -465,12 +449,12 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
   const popover = document.createElement('div');
   popover.className = 'selector-popover';
   if (level > 0) popover.classList.add('submenu');
-  
+
   items.forEach(item => {
     const el = document.createElement('div');
     el.className = 'popover-item';
     if (item.children && item.children.length > 0) el.classList.add('has-children');
-    
+
     // Path including current item
     const itemPath = [...currentLevelPath, { id: item.id, name: item.name, type: item.type }];
 
@@ -482,7 +466,7 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
         <span>${item.name}</span>
       </div>
     `;
-    
+
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       onSelect(itemPath);
@@ -507,7 +491,7 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
     }
     popover.appendChild(el);
   });
-  
+
   if (level === 0) {
     const closeHandler = (e) => {
       if (!popover.contains(e.target) && !e.target.closest('.breadcrumb-item')) {
@@ -583,7 +567,7 @@ async function loadData() {
 
   // Get domainId from hierarchical selector state
   const domainId = getCurrentDomainId();
-  
+
   if (!domainId) {
     console.warn('No domain selected. Skipping loadData.');
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
@@ -830,7 +814,7 @@ const selectionRangePlugin = {
           let val2 = xAxis.getValueForPixel(dragCurrentX);
 
           if (val1 > val2) {
-            const val = d.yValue;
+            const temp = val1;
             val1 = val2;
             val2 = temp;
           }
@@ -1681,7 +1665,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // 1. Filter data: only items with count > 0 to find meaningful distributions
   const validData = data.filter(d => d.count > 0);
   if (validData.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">유효한 데이터가 없습니다.</div>';
+    container.innerHTML = '<div class="heatmap-placeholder">有効なデータがありません。</div>';
     return;
   }
 
@@ -1862,9 +1846,6 @@ window.hideHeatmapTooltip = function () {
   if (globalHeatmapTooltip) globalHeatmapTooltip.style.display = 'none';
 };
 
-function updateFooterHoverStats(monthStr) {
-  // No longer used for DOM footer - stats are rendered directly in chart canvas
-}
 
 function updateSummaryCardsPartial(startIdx, endIdx) {
   if (startIdx < 0 || endIdx < 0 || yearlyData['service_time'].length === 0) {
@@ -2065,15 +2046,6 @@ function parseDateString(dateStr, full = false) {
   return `${m}/${d}`;
 }
 
-function calculateInterval(startDate, endDate) {
-  const diffTime = Math.abs(endDate - startDate);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays <= 1) return 5; // 1day
-  if (diffDays <= 7) return 60; // 1week
-  if (diffDays <= 30) return 180; // 1month
-  return 1440; // over 1month
-}
 
 // Fallback logic for when API is unreachable due to CORS or local network issues
 function mockDataOnFailPartial() {
@@ -2102,7 +2074,7 @@ function mockDataOnFailPartial() {
 
   // Update main chart
   const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
-  const metricDisplayName = activeBtn ? activeBtn.textContent : '응답시간';
+  const metricDisplayName = activeBtn ? activeBtn.textContent : '応答時間';
 
   updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
     mainChartInstance = instance;

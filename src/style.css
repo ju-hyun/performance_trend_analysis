@@ -6,7 +6,6 @@
   --border-color: #e2e8f0;
   --primary-color: #22c55e;
   --primary-hover: #16a34a;
-  --sidebar-bg: #ffffff;
   --sidebar-active: #f1f5f9;
   --sidebar-icon: #94a3b8;
   --sidebar-icon-active: #3b82f6;
@@ -86,10 +85,6 @@ body {
   flex: 1 0 auto;
 }
 
-.custom-date-group {
-  min-width: 250px;
-}
-
 .filter-group label {
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -98,8 +93,7 @@ body {
   white-space: nowrap;
 }
 
-.form-select,
-.form-input {
+.form-select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   font-size: 0.85rem;
@@ -112,8 +106,7 @@ body {
   font-family: inherit;
 }
 
-.form-select:focus,
-.form-input:focus {
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px var(--green-glow);
 }
@@ -457,45 +450,6 @@ body {
 
 .stat-item.rate-none {
   color: #94a3b8;
-}
-
-.chart-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #fafafa;
-}
-
-.footer-label {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.footer-stats {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.footer-stats strong {
-  font-size: 0.95rem;
-  color: var(--text-primary);
-}
-
-.trend {
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.trend.up {
-  color: var(--danger-color);
-}
-
-.trend.down {
-  color: var(--primary-color);
 }
 
 /* Loading overlay - Glassmorphism style */
