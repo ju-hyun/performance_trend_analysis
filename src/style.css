@@ -841,3 +841,59 @@ body {
   border-color: var(--sidebar-icon-active);
   transform: translateY(-1px);
 }
+
+/* Configuration Error Overlay */
+.config-error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  color: white;
+  text-align: center;
+}
+
+.config-error-content {
+  max-width: 500px;
+  padding: 2rem;
+  background: #1e293b;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.config-error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.config-error-content h2 {
+  color: #f87171;
+  margin-bottom: 1rem;
+}
+
+.config-error-content p {
+  color: #cbd5e1;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.config-error-box {
+  background: #0f172a;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.config-error-box code {
+  color: #38bdf8;
+  font-family: monospace;
+}
+

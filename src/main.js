@@ -56,8 +56,21 @@ Chart.defaults.plugins.tooltip.padding = 10;
 Chart.defaults.plugins.tooltip.cornerRadius = 4;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Validate configuration
+  const missingVars = [];
+  if (!TOKEN) missingVars.push('VITE_API_TOKEN');
+  if (!config.BASE_URL) missingVars.push('VITE_API_BASE_URL');
+  
+  if (missingVars.length > 0) {
+    showConfigError(`${missingVars.join(' and ')} is not defined in .env file.`);
+    return;
+  }
+
   // Initial load: Load domains first, then data
   const domainsLoaded = await loadDomains();
+
+  // If a configuration/auth error was already shown by loadDomains, stop here
+  if (document.querySelector('.config-error-overlay')) return;
 
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
@@ -175,6 +188,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHelpSystem();
 });
 
+
+function showConfigError(message, title = 'Configuration Error') {
+  const overlay = document.createElement('div');
+  overlay.className = 'config-error-overlay';
+  overlay.innerHTML = `
+    <div class="config-error-content">
+      <div class="config-error-icon">⚠️</div>
+      <h2>${title}</h2>
+      <p>${message}</p>
+      <div class="config-error-box">
+        <code>Please check your <strong>.env</strong> file settings.</code>
+      </div>
+    </div>
+  `;
+  // Ensure the overlay is shown after a tiny delay so the background content is rendered
+  setTimeout(() => {
+    document.body.appendChild(overlay);
+    
+    // Completely hide/remove loading overlay if it exists
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => loadingOverlay.style.display = 'none', 300);
+    }
+  }, 50);
+}
+
 function initHelpSystem() {
   const mainHelpBtn = document.getElementById('mainHelpBtn');
   const contextHelpBtns = document.querySelectorAll('.help-btn-small');
@@ -219,6 +259,11 @@ async function loadDomains() {
       headers: { 'Accept': 'application/json' }
     });
 
+    if (response.status === 401) {
+      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      return false;
+    }
+
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const data = await response.json();
@@ -248,6 +293,9 @@ async function loadDomains() {
       console.warn('Network error or CORS issue suspected. Check if the API server is reachable or if the request is being blocked.');
     }
 
+    // For loadDomains, we want to know if it was a config error or something else
+    if (document.querySelector('.config-error-overlay')) return false;
+    
     // Fallback to mock domains
     const mockDomains = [
       { domainId: '1000', name: 'Sample Domain A (Mock)' },
@@ -285,6 +333,11 @@ async function loadInstances(domainId) {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
+
+    if (response.status === 401) {
+      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      return;
+    }
 
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
@@ -437,6 +490,11 @@ async function fetchMetricData(domainId, instanceId, startTime, endTime, interva
         'Accept': 'application/json'
       }
     });
+
+    if (response.status === 401) {
+      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      return [];
+    }
 
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status}`);
