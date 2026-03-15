@@ -798,3 +798,46 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Help System Styles */
+.title-with-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help-btn-circle, .help-btn-small {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.help-btn-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.help-btn-small {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.help-btn-circle svg, .help-btn-small svg {
+  width: 16px;
+  height: 16px;
+}
+
+.help-btn-circle:hover, .help-btn-small:hover {
+  background-color: var(--sidebar-active);
+  color: var(--sidebar-icon-active);
+  border-color: var(--sidebar-icon-active);
+  transform: translateY(-1px);
+}

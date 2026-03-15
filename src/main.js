@@ -170,7 +170,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateChartStatsGrid(labels, mainChartInstance);
     }
   });
+
+  // Help System Logic
+  initHelpSystem();
 });
+
+function initHelpSystem() {
+  const mainHelpBtn = document.getElementById('mainHelpBtn');
+  const contextHelpBtns = document.querySelectorAll('.help-btn-small');
+
+  const openHelpPopup = (sectionId = 'general') => {
+    const url = `help.html#${sectionId}`;
+    const features = 'width=900,height=850,scrollbars=yes,resizable=yes';
+    const helpWin = window.open(url, 'PerformanceHelp', features);
+    if (helpWin) helpWin.focus();
+  };
+
+  if (mainHelpBtn) mainHelpBtn.addEventListener('click', () => openHelpPopup('main-chart'));
+
+  contextHelpBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sectionId = btn.getAttribute('data-help-section') || 'general';
+      openHelpPopup(sectionId);
+    });
+  });
+}
 
 async function loadDomains() {
   const url = new URL(DOMAIN_API_BASE, window.location.origin);
@@ -1652,6 +1677,7 @@ function getMetricUnit(metric) {
 
 // Keyboard Navigation for Chart Selection
 window.addEventListener('keydown', (e) => {
+  // Handle ESC key to deselect or close help
   // Handle ESC key to deselect
   if (e.key === 'Escape') {
     if (selectedStartMonth || selectedEndMonth) {

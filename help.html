@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>性能トレンド分析 - ヘルプ</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --primary-color: #22c55e;
+      --accent-color: #3b82f6;
+    }
+
+    body {
+      font-family: "Pretendard JP Variable", "Pretendard JP", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.6;
+      margin: 0;
+      padding: 1.5rem;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      border: 1px solid var(--border-color);
+    }
+
+    header {
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.0rem;
+      padding-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      color: var(--text-primary);
+      margin-top: 2rem;
+      border-left: 4px solid var(--accent-color);
+      padding-left: 12px;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-top: 1.5rem;
+    }
+
+    section {
+      margin-bottom: 3rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      padding-left: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .guide-box {
+      background: #f1f5f9;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+
+    .quadrant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .quadrant {
+      background: white;
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .quadrant strong {
+      display: block;
+      color: var(--accent-color);
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-right: 4px;
+    }
+
+    .close-btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #475569;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      background: #cbd5e1;
+    }
+
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1.5rem;
+    }
+
+    /* Anchor highlighting */
+    section:target {
+      animation: highlight 2s ease-out;
+    }
+
+    @keyframes highlight {
+      0% {
+        background-color: #fff9c4;
+      }
+
+      100% {
+        background-color: transparent;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>性能トレンド分析 ガイド</h1>
+      <button onclick="window.close()" class="close-btn">閉じる</button>
+    </header>
+
+    <section id="general">
+      <h2>1. システム概要</h2>
+      <p>
+        性能トレンド分析ダッシュボードは、ウェブアプリケーションの長期的な性能推移を可視化し、システムの状態を多角的に分析するためのツールです。1年間のデータを1時間単位の精度で保持し、トレンドの把握やキャパシティプランニングに活用できます。
+      </p>
+    </section>
+
+    <section id="main-chart">
+      <h2>2. メイン時系列チャート</h2>
+      <p>アプリケーション上部に配置されたメインチャートは、選択したメトリクスの時間経過に伴う変化を確認するための主要な指標です。</p>
+
+      <h3>2.1 各指標（メトリクス）の定義</h3>
+      <ul>
+        <li><span class="metric-tag">応答時間</span> <strong>Response Time (ms):</strong>
+          リクエストの処理完了までにかかった平均時間。ユーザー体験に直結する重要な指標です。</li>
+        <li><span class="metric-tag">TPS</span> <strong>Transactions Per Second:</strong>
+          1秒あたりの平均処理件数。システムの現在のスループットを示します。</li>
+        <li><span class="metric-tag">Hit数</span> <strong>Hits (Count):</strong> 特定の時間枠内の総リクエスト数。システムの負荷量（トラフィック）を測定します。
+        </li>
+        <li><span class="metric-tag">同時ユーザ数</span> <strong>Concurrent Users:</strong> システムにアクティブに接続しているユーザー数。</li>
+        <li><span class="metric-tag">CPU / メモリ</span> インスタンスごとの物理リソース使用率。平均値と最大値(Peak)を同時に分析することで、リソース不足を早期に検知できます。</li>
+      </ul>
+
+      <h3>2.2 ダッシュボードの操作方法</h3>
+
+      <ul>
+        <li><strong>期間の絞り込み:</strong> メインチャート上の特定の範囲をマウスでドラッグすると、その期間の統計データが全カードとヒートマップに即座に反映されます。</li>
+        <li><strong>範囲の移動:</strong> キーボードの方向キー (←, →) を押すと、選択した1ヶ月の範囲を前後に移動できます。</li>
+        <li><strong>選択解除:</strong> <code>Esc</code> キーを押すと、選択がリセットされ、1年全体のデータに戻ります。</li>
+        <li><strong>移動平均の活用:</strong> 「移動平均」をOnにすると、短期的な変動を抑えた長期的なトレンドが視覚化され、本質的な変化を捉えやすくなります。</li>
+      </ul>
+
+    </section>
+
+    <section id="overall">
+      <h2>3. Overall ヒットマップ分析 (相関分析)</h2>
+      <p>このチャートは、<strong>負荷(Hits)</strong>と<strong>性能(Response Time)</strong>の相関を示します。データは中央値(Median)によって4つのエリアに分類されます。
+      </p>
+
+      <div class="quadrant-grid">
+        <div class="quadrant">
+          <strong>左上: 効率不良エリア</strong>
+          低負荷にもかかわらず応答が遅い状態。非効率なクエリや外部接続の遅延が疑われます。
+        </div>
+        <div class="quadrant">
+          <strong>右上: 限界エリア</strong>
+          負荷が高まると同時に応答も遅くなっている状態。サーバーのリソース増設が必要なサインです。
+        </div>
+        <div class="quadrant">
+          <strong>左下: 理想エリア</strong>
+          負荷が低く、応答も非常に速い安定した状態。
+        </div>
+        <div class="quadrant">
+          <strong>右下: 高性能エリア</strong>
+          高い負荷がかかっているにもかかわらず、応答速度が維持されている非常に効率的な状態。
+        </div>
+      </div>
+    </section>
+
+    <section id="dayhour">
+      <h2>4. 曜日 x 時間帯別 分析 (パターン分析)</h2>
+      <p>日次および週次の稼働パターンを把握するためのヒートマップです。統計的な標準偏差に基づき、自動的にステータスを分類します。</p>
+      <ul>
+        <li><strong>安定 (Stable):</strong> 過去の統計から見て平均的な動作範囲。</li>
+        <li><strong>警戒 (Warning):</strong> 通常よりも平均負荷が高い、または応答が低下している時間帯。注意深い監視が必要です。</li>
+        <li><strong>高 (High):</strong> 明らかなピーク。リソースの限界に近い、または異常なアクセス集中が発生している可能性があります。</li>
+      </ul>
+    </section>
+
+    <footer>
+      &copy; 2026 JenniferSoft, Inc. All rights reserved.
+    </footer>
+  </div>
+</body>
+
+</html>
