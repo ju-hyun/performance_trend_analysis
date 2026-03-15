@@ -286,6 +286,9 @@ async function loadInstances(domainId) {
 }
 
 async function loadData() {
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
   const domainId = domainSelect.value;
   const instanceId = instanceSelect.value;
 
@@ -370,6 +373,8 @@ async function loadData() {
   } catch (error) {
     console.error('Data loading failed:', error);
     mockDataOnFailPartial();
+  } finally {
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
   }
 }
 
