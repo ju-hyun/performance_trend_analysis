@@ -93,10 +93,10 @@ server {
     server_name your-domain.com; # 또는 EC2 퍼블릭 IP
 
     root /home/ec2-user/performance-trend-analysis/dist; # 프로젝트 빌드 경로
-    index index.html;
+    index analysis_perf_trend.html;
 
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /analysis_perf_trend.html;
     }
 
     # 백엔드 API 프록시 설정 (Vite의 proxy 설정 대체)
@@ -125,7 +125,33 @@ sudo systemctl restart nginx
 
 ---
 
-## 5. 트러블슈팅 (Troubleshooting)
+## 5. Nginx 없이 직접 테스트하기 (Direct Testing without Nginx)
+
+배포 초기에 Nginx 설정 없이 Vite 개발 서버를 통해 직접 접속하여 동작을 확인할 수 있습니다.
+
+### 보안 그룹 설정 확인
+- EC2 보안 그룹의 `Inbound Rules`에 다음 포트가 허용되어 있는지 확인합니다:
+  - **Port: 5177** (TCP)
+  - **Source: Any IPv4 (0.0.0.0/0)** 또는 본인의 IP
+
+### 테스트 서버 실행
+프로젝트 폴더에서 다음 명령어를 실행합니다.
+```bash
+npm run dev
+```
+
+### 접속 확인
+브라우저에서 다음 주소로 접속합니다:
+```
+http://<EC2-퍼블릭-IP>:5177
+```
+
+> [!TIP]
+> 터미널 세션이 종료되어도 서버를 유지하려면 `nohup npm run dev &` 또는 `pm2`와 같은 프로세스 매니저를 사용할 수 있습니다.
+
+---
+
+## 6. 트러블슈팅 (Troubleshooting)
 
 ### 권한 문제 (Nginx 403 Forbidden)
 Nginx 프로세스가 프로젝트의 `dist` 폴더에 접근할 수 있도록 상위 디렉토리에 실행 권한을 부여해야 할 수 있습니다.

@@ -28,6 +28,13 @@ export default defineConfig(({ mode }) => {
                 'Cross-Origin-Embedder-Policy': 'credentialless',
                 'Cross-Origin-Opener-Policy': 'same-origin'
             }
+        },
+        build: {
+            rollupOptions: {
+                input: {
+                    main: 'analysis_perf_trend.html'
+                }
+            }
         }
     };
 });
