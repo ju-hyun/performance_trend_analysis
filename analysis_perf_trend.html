@@ -64,6 +64,7 @@
               <button class="metric-btn" data-metric="service_rate">TPS</button>
               <button class="metric-btn" data-metric="service_count">Hit数</button>
               <button class="metric-btn" data-metric="concurrent_user">同時ユーザ数</button>
+              <button class="metric-btn" data-metric="err_rate">エラー率</button>
               <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu">システムCPU</button>
               <button class="metric-btn hidden" data-metric="heap_usage" id="btnHeapUsage">ヒープメモリ使用率</button>
             </div>
@@ -183,6 +184,21 @@
             <h3>平均同時ユーザ数</h3>
           </div>
           <div class="summary-value" id="avgConcurrentUsers">0</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="summary-icon-svg">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </span>
+            <h3>平均エラー率</h3>
+          </div>
+          <div class="summary-value" id="avgErrRate">0%</div>
         </div>
 
         <div class="summary-card">

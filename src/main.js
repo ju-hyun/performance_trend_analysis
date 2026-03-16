@@ -23,7 +23,9 @@ let yearlyData = {
   service_count: [],
   sys_cpu: [],
   heap_usage: [],
-  max_sys_cpu: []
+  max_sys_cpu: [],
+  service_err_count: [],
+  err_rate: []
 };
 
 let currentMetric = 'service_time';
@@ -585,7 +587,8 @@ async function loadData() {
     const today = new Date();
 
     // Main Chart & Summary Metrics: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
-    const metricsToFetch = Array.from(new Set([currentMetric, 'service_time', 'service_rate', 'concurrent_user', 'service_count', 'sys_cpu', 'heap_usage', 'max_sys_cpu']));
+    const metricsToFetch = Array.from(new Set([currentMetric, 'service_time', 'service_rate', 'concurrent_user', 'service_count', 'service_err_count', 'sys_cpu', 'heap_usage', 'max_sys_cpu']))
+      .filter(m => m !== 'err_rate');
     const fetchPromisesMap = {};
     metricsToFetch.forEach(m => fetchPromisesMap[m] = []);
 
@@ -629,6 +632,17 @@ async function loadData() {
 
     metricsToFetch.forEach(m => {
       yearlyData[m] = processResults(results[m]);
+    });
+
+    // Calculate Error Rate (err_rate)
+    const countData = yearlyData['service_count'] || [];
+    const errCountData = yearlyData['service_err_count'] || [];
+    yearlyData['err_rate'] = countData.map((item, idx) => {
+      const errItem = errCountData[idx];
+      const count = item.value || 0;
+      const errCount = (errItem && errItem.value) ? errItem.value : 0;
+      const rate = count > 0 ? (errCount / count) * 100 : 0;
+      return { time: item.time, value: rate };
     });
 
     // Update UI Elements for Chart
@@ -1098,7 +1112,8 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
                   label += ': ';
                 }
                 if (context.parsed.y !== null) {
-                  label += new Intl.NumberFormat().format(context.parsed.y);
+                  const unit = getMetricUnit(currentMetric);
+                  label += new Intl.NumberFormat().format(context.parsed.y) + (unit ? ' ' + unit : '');
                 }
                 return label;
               }
@@ -1128,6 +1143,8 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
             ticks: {
               maxTicksLimit: 6,
               callback: function (value) {
+                const unit = getMetricUnit(currentMetric);
+                if (unit === '%') return value + '%';
                 if (value >= 1000) {
                   return (value / 1000).toFixed(0) + 'k';
                 }
@@ -1441,6 +1458,7 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
 
     const timePromises = [];
     const countPromises = [];
+    const errCountPromises = []; // Add for Error Rate
 
     let currentStart = new Date(startDate);
     while (currentStart < fetchEndDate) {
@@ -1453,23 +1471,31 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       const chunkStartStr = formatDateParam(currentStart);
       const chunkEndStr = formatDateParam(currentEnd);
 
-      const metricToFetch = currentMetric;
       const isHitSelected = (currentMetric === 'service_count');
+      const isErrRateSelected = (currentMetric === 'err_rate');
 
       timePromises.push(
-        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, isHitSelected ? 'service_time' : metricToFetch)
+        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, (isHitSelected || isErrRateSelected) ? 'service_time' : currentMetric)
           .catch(err => { console.warn(`Heatmap primary chunk failed`, err); return []; })
       );
       countPromises.push(
         fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
           .catch(err => { console.warn("Heatmap service_count chunk failed", err); return []; })
       );
+      
+      if (currentMetric === 'err_rate') {
+        errCountPromises.push(
+          fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_err_count')
+            .catch(err => { console.warn("Heatmap service_err_count chunk failed", err); return []; })
+        );
+      }
 
       currentStart = currentEnd;
     }
 
     const timeResults = await Promise.all(timePromises);
     const countResults = await Promise.all(countPromises);
+    const errCountResults = (currentMetric === 'err_rate') ? await Promise.all(errCountPromises) : [];
 
     let heatmapTimeData = [];
     timeResults.forEach(res => heatmapTimeData.push(...res));
@@ -1479,12 +1505,29 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
     countResults.forEach(res => heatmapCountData.push(...res));
     heatmapCountData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
+    let heatmapErrCountData = [];
+    if (currentMetric === 'err_rate') {
+      errCountResults.forEach(res => heatmapErrCountData.push(...res));
+      heatmapErrCountData.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    }
+
     const combinedHeatmapData = heatmapTimeData.map((timeItem, idx) => {
       const countItem = heatmapCountData[idx];
+      const errCountItem = (currentMetric === 'err_rate') ? heatmapErrCountData[idx] : null;
+
+      let value = timeItem.value;
+      if (currentMetric === 'service_count') {
+        value = countItem ? countItem.value : 0;
+      } else if (currentMetric === 'err_rate') {
+        const c = countItem ? countItem.value : 0;
+        const e = errCountItem ? errCountItem.value : 0;
+        value = c > 0 ? (e / c) * 100 : 0;
+      }
+
       return {
         time: timeItem.time,
-        value: (currentMetric === 'service_count') ? (countItem ? countItem.value : 0) : timeItem.value, // For Day/Hour
-        yValue: timeItem.value, // Always the "performance" metric for Overall Y-axis (or service_time if hit selected)
+        value: value, 
+        yValue: value, // Use the calculated value (rate or time) for Y-axis
         count: countItem ? countItem.value : 0
       };
     });
@@ -1887,6 +1930,7 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const sysCpuData = sliceData('sys_cpu');
   const maxSysCpuData = sliceData('max_sys_cpu');
   const heapUsageData = sliceData('heap_usage');
+  const errRateData = sliceData('err_rate');
 
   // Peak Date (Based on currently selected metric)
   const currentData = sliceData(currentMetric);
@@ -1907,12 +1951,14 @@ function updateSummaryCardsPartial(startIdx, endIdx) {
   const avgSysCpu = calcAvg(sysCpuData);
   const avgMaxSysCpu = calcAvg(maxSysCpuData);
   const avgHeapUsage = calcAvg(heapUsageData);
+  const avgErrRate = calcAvg(errRateData);
 
   document.getElementById('avgResponseTime').innerHTML = `${Math.round(avgST).toLocaleString()} <span class="unit">ms</span>`;
   document.getElementById('avgTps').textContent = avgSR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('avgConcurrentUsers').textContent = Math.round(avgCU).toLocaleString();
   document.getElementById('avgHits').textContent = Math.round(avgSC).toLocaleString();
   const isInstanceSelected = !!(document.getElementById('instanceSelect').value);
+  document.getElementById('avgErrRate').textContent = `${avgErrRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
   document.getElementById('avgSysCpu').textContent = isInstanceSelected ? `${Math.round(avgSysCpu)}%` : '-';
   document.getElementById('avgHeapUsage').textContent = isInstanceSelected ? `${Math.round(avgHeapUsage)}%` : '-';
 }
@@ -1934,7 +1980,8 @@ function getMetricUnit(metric) {
     case 'service_count': return 'Hits';
     case 'sys_cpu':
     case 'max_sys_cpu':
-    case 'heap_usage': return '%';
+    case 'heap_usage':
+    case 'err_rate': return '%';
     default: return '';
   }
 }
@@ -2068,6 +2115,7 @@ function mockDataOnFailPartial() {
   yearlyData['service_rate'] = mockDates.map(d => ({ time: d, value: 2 + Math.random() * 5 }));
   yearlyData['concurrent_user'] = mockDates.map(d => ({ time: d, value: 100 + Math.random() * 200 }));
   yearlyData['service_count'] = mockDates.map(d => ({ time: d, value: 5000 + Math.random() * 15000 }));
+  yearlyData['service_err_count'] = mockDates.map(d => ({ time: d, value: Math.random() * 500 }));
   yearlyData['sys_cpu'] = mockDates.map(d => ({ time: d, value: 10 + Math.random() * 25 }));
   yearlyData['max_sys_cpu'] = mockDates.map(d => ({ time: d, value: 40 + Math.random() * 50 }));
   yearlyData['heap_usage'] = mockDates.map(d => ({ time: d, value: 30 + Math.random() * 40 }));

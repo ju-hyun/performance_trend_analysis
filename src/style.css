@@ -155,14 +155,14 @@ body {
 /* Summary Cards */
 .summary-cards {
   display: grid;
-  grid-template-columns: 240px repeat(7, 1fr);
-  gap: 0.5rem 0.5rem;
+  grid-template-columns: 210px repeat(8, 1fr);
+  gap: 0.4rem;
   margin-bottom: 0.5rem;
 }
 
 .summary-card {
   background: var(--card-bg);
-  padding: 0.5rem 0.8rem 0.5rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -175,8 +175,8 @@ body {
 .summary-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 0.5rem;
+  gap: 6px;
+  margin-bottom: 0.35rem;
 }
 
 .summary-icon {
@@ -192,7 +192,7 @@ body {
 }
 
 .summary-card h3 {
-  font-size: 0.80rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-secondary);
   margin-bottom: 0;
@@ -214,15 +214,18 @@ body {
 }
 
 .summary-value {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
   text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .summary-value .unit {
-  font-size: 1rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 500;
 }
