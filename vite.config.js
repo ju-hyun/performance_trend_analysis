@@ -32,7 +32,8 @@ export default defineConfig(({ mode }) => {
         build: {
             rollupOptions: {
                 input: {
-                    main: 'analysis_perf_trend.html'
+                    main: 'analysis_perf_trend.html',
+                    help: 'help.html'
                 }
             }
         }
