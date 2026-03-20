@@ -1482,7 +1482,7 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
         fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
           .catch(err => { console.warn("Heatmap service_count chunk failed", err); return []; })
       );
-      
+
       if (currentMetric === 'err_rate') {
         errCountPromises.push(
           fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_err_count')
@@ -1526,7 +1526,7 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
 
       return {
         time: timeItem.time,
-        value: value, 
+        value: value,
         yValue: (currentMetric === 'service_count') ? timeItem.value : value, // Use Response Time for Y-axis or list metrics when Hit Count is selected
         count: countItem ? countItem.value : 0
       };
@@ -1777,9 +1777,10 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   const maxBinLength = d3.max(bins, d => d.length);
 
   // Define a color scale mapping density to green opacity
-  // Non-linear mapping using square root for better contrast with sparse data, but using a darker base.
+  // Non-linear mapping adjusted for a wider gradient and better distinctiveness.
+  // Base opacity lowered to 0.15, using a square root (0.5) curve to spread the mid-ranges better.
   const colorScale = d3.scaleSequential(
-    (t) => `rgba(34, 197, 94, ${Math.min(0.3 + (Math.pow(t, 0.4) * 0.7), 1)})`
+    (t) => `rgba(10, 210, 50, ${Math.min(0.10 + (Math.pow(t, 0.5) * 0.85), 1)})`
   ).domain([1, maxBinLength || 1]);
 
   // 6. Draw the 4-Quadrant Axes (Centered on Median)
@@ -1809,7 +1810,9 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .attr("stroke", "white")
     .attr("stroke-width", "0.5")
     .on("mouseover", function (event, d) {
-      d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
+      if (!d3.select(this).classed("selected-hex")) {
+        d3.select(this).attr("stroke", "#333").attr("stroke-width", "1.5");
+      }
       // Find min ~ max ranges of the bin for the tooltip
       const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const minTime = d3.min(d, p => p.yValue); // Changed from p.responseTime to p.value
@@ -1826,11 +1829,25 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
       showHeatmapTooltip(event, tooltipText);
     })
     .on("mouseout", function () {
-      d3.select(this).attr("stroke", "white").attr("stroke-width", "0.5");
+      if (!d3.select(this).classed("selected-hex")) {
+        d3.select(this).attr("stroke", "white").attr("stroke-width", "0.5");
+      }
       hideHeatmapTooltip();
     })
     .on("click", function (event, d) {
-      showOverallListLayer(d, metric, isHitSelected);
+      d3.selectAll(".hexagon-group path.selected-hex")
+        .classed("selected-hex", false)
+        .attr("stroke", "white")
+        .attr("stroke-width", "0.5");
+
+      d3.select(this)
+        .classed("selected-hex", true)
+        .attr("stroke", "#ef4444")
+        .attr("stroke-width", "2");
+
+      if (window.showOverallListLayer) {
+        window.showOverallListLayer(d, metric, isHitSelected);
+      }
     });
 
   // 8. Minimalist Labels (Only Medians)
@@ -2158,6 +2175,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       document.getElementById('overallDetailLayer').classList.remove('open');
+
+      // Remove hexagon highlight when layer is closed
+      if (window.d3) {
+        d3.selectAll('.hexagon-group path.selected-hex')
+          .classed('selected-hex', false)
+          .attr('stroke', 'white')
+          .attr('stroke-width', '0.5');
+      }
     });
   }
 });
@@ -2176,22 +2201,22 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
   const sortedData = [...dataPoints].sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
   tbody.innerHTML = '';
-  
+
   const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  
+
   sortedData.forEach((item, index) => {
     const timeStr = String(item.time);
     const yyyy = timeStr.substring(0, 4);
     const MM = timeStr.substring(4, 6);
     const dd = timeStr.substring(6, 8);
     const HH = timeStr.substring(8, 10);
-    
+
     // Default format requested: date(yyyy.MM.dd) and time(HH)
     const dateFormatted = `${yyyy}.${MM}.${dd}`;
     const timeFormatted = `${HH}`;
     const hitsFormatted = `${item.count}件`;
     const metricFormatted = `${formatVal(item.yValue)}${unit}`;
-    
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${index + 1}</td>
@@ -2200,17 +2225,17 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
       <td>${hitsFormatted}</td>
       <td>${metricFormatted}</td>
     `;
-    
+
     tr.addEventListener('click', () => {
-        // Open detail popup
-        const startTime = item.time.padEnd(12, '0'); // pad to yyyyMMddHHmm
-        // Extract current domain and instance from UI or state
-        const domainId = typeof getCurrentDomainId === 'function' ? getCurrentDomainId() : '';
-        const instanceId = document.getElementById('instanceSelect')?.value || '';
-        const winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}&instance_id=${instanceId}`;
-        window.open(winUrl, 'DetailOverallPopup', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+      // Open detail popup
+      const startTime = item.time.padEnd(12, '0'); // pad to yyyyMMddHHmm
+      // Extract current domain and instance from UI or state
+      const domainId = typeof getCurrentDomainId === 'function' ? getCurrentDomainId() : '';
+      const instanceId = document.getElementById('instanceSelect')?.value || '';
+      const winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}&instance_id=${instanceId}`;
+      window.open(winUrl, 'DetailOverallPopup', 'width=1400,height=900,scrollbars=yes,resizable=yes');
     });
-    
+
     tbody.appendChild(tr);
   });
 
