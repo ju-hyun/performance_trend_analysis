@@ -1828,6 +1828,9 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .on("mouseout", function () {
       d3.select(this).attr("stroke", "white").attr("stroke-width", "0.5");
       hideHeatmapTooltip();
+    })
+    .on("click", function (event, d) {
+      showOverallListLayer(d, metric, isHitSelected);
     });
 
   // 8. Minimalist Labels (Only Medians)
@@ -2148,3 +2151,68 @@ function mockDataOnFailPartial() {
   renderDayHourHeatmap(heatmapMockData);
   renderOverallHeatmap(heatmapMockData);
 }
+
+// Setup Slide-in Layer Logic
+document.addEventListener('DOMContentLoaded', () => {
+  const closeBtn = document.getElementById('closeDetailLayer');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      document.getElementById('overallDetailLayer').classList.remove('open');
+    });
+  }
+});
+
+window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
+  const layer = document.getElementById('overallDetailLayer');
+  const tbody = document.getElementById('detailListBody');
+  const metricHeader = document.getElementById('detailMetricHeader');
+  if (!layer || !tbody || !metricHeader) return;
+
+  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+  const metricDisplayName = isHitSelected ? '응답시간' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
+  metricHeader.textContent = `${metricDisplayName}(${unit})`;
+
+  // Sort data points by time ascending
+  const sortedData = [...dataPoints].sort((a, b) => String(a.time).localeCompare(String(b.time)));
+
+  tbody.innerHTML = '';
+  
+  const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  
+  sortedData.forEach((item, index) => {
+    const timeStr = String(item.time);
+    const yyyy = timeStr.substring(0, 4);
+    const MM = timeStr.substring(4, 6);
+    const dd = timeStr.substring(6, 8);
+    const HH = timeStr.substring(8, 10);
+    
+    // Default format requested: date(yyyy.MM.dd) and time(HH)
+    const dateFormatted = `${yyyy}.${MM}.${dd}`;
+    const timeFormatted = `${HH}`;
+    const hitsFormatted = `${item.count}件`;
+    const metricFormatted = `${formatVal(item.yValue)}${unit}`;
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${dateFormatted}</td>
+      <td>${timeFormatted}</td>
+      <td>${hitsFormatted}</td>
+      <td>${metricFormatted}</td>
+    `;
+    
+    tr.addEventListener('click', () => {
+        // Open detail popup
+        const startTime = item.time.padEnd(12, '0'); // pad to yyyyMMddHHmm
+        // Extract current domain and instance from UI or state
+        const domainId = typeof getCurrentDomainId === 'function' ? getCurrentDomainId() : '';
+        const instanceId = document.getElementById('instanceSelect')?.value || '';
+        const winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}&instance_id=${instanceId}`;
+        window.open(winUrl, 'DetailOverallPopup', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+    });
+    
+    tbody.appendChild(tr);
+  });
+
+  layer.classList.add('open');
+};
