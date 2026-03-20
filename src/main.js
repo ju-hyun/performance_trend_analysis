@@ -2232,7 +2232,8 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
       // Extract current domain and instance from UI or state
       const domainId = typeof getCurrentDomainId === 'function' ? getCurrentDomainId() : '';
       const instanceId = document.getElementById('instanceSelect')?.value || '';
-      const winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}&instance_id=${instanceId}`;
+      let winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}`;
+      if (instanceId) winUrl += `&instance_id=${instanceId}`;
       window.open(winUrl, 'DetailOverallPopup', 'width=1400,height=900,scrollbars=yes,resizable=yes');
     });
 
