@@ -100,6 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      // Prevent clicking if the overall details layer is currently displayed
+      const detailLayer = document.getElementById('overallDetailLayer');
+      if (detailLayer && detailLayer.classList.contains('open')) {
+        return;
+      }
+
       document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
       const targetBtn = e.currentTarget;
       targetBtn.classList.add('active');
@@ -807,6 +813,12 @@ const monthBoundaryPlugin = {
 const selectionRangePlugin = {
   id: 'selectionRange',
   afterEvent(chart, args) {
+    // Prevent dragged selection if the overall details layer is currently displayed
+    const detailLayer = document.getElementById('overallDetailLayer');
+    if (detailLayer && detailLayer.classList.contains('open')) {
+      return;
+    }
+
     const event = args.event;
     if (event.type === 'mousedown') {
       isSelecting = true;
