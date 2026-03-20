@@ -813,12 +813,6 @@ const monthBoundaryPlugin = {
 const selectionRangePlugin = {
   id: 'selectionRange',
   afterEvent(chart, args) {
-    // Prevent dragged selection if the overall details layer is currently displayed
-    const detailLayer = document.getElementById('overallDetailLayer');
-    if (detailLayer && detailLayer.classList.contains('open')) {
-      return;
-    }
-
     const event = args.event;
     if (event.type === 'mousedown') {
       isSelecting = true;
