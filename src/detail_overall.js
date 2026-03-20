@@ -38,10 +38,10 @@ function getEndTime(startTimeStr) {
   const d = parseInt(startTimeStr.substring(6, 8), 10);
   const H = parseInt(startTimeStr.substring(8, 10), 10);
   const min = parseInt(startTimeStr.substring(10, 12), 10);
-  
+
   const startDate = new Date(y, m, d, H, min);
   const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // +1 hour
-  
+
   const format = (date) => {
     return date.getFullYear() +
       String(date.getMonth() + 1).padStart(2, '0') +
@@ -58,29 +58,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('loadingOverlay').innerHTML = '<h2>エラー: 必須パラメータ不足 (start_time 等)</h2>';
     return;
   }
-  
+
   activeMetrics = params.instance_id ? METRICS : METRICS.filter(m => m.key !== 'sys_cpu' && m.key !== 'heap_usage');
-  
+
   const endTime = getEndTime(params.start_time);
-  
+
   await loadData(params.domain_id, params.instance_id, params.start_time, endTime, params.metric);
 });
 
 async function loadData(domainId, instanceId, startTime, endTime, targetMetric) {
   try {
     const rawMetrics = ['service_rate', 'service_count', 'service_time', 'concurrent_user', 'service_err_count', 'sys_cpu', 'heap_usage'];
-    
+
     document.getElementById('loadingOverlay').classList.remove('hidden');
-    
+
     // Fetch all sequentially or parallel
     const promises = rawMetrics.map(m => fetchMetricData(domainId, instanceId, startTime, endTime, 1, m).catch(() => []));
     const results = await Promise.all(promises);
-    
+
     let dbData = {};
     rawMetrics.forEach((m, idx) => {
-      dbData[m] = results[idx].sort((a,b) => String(a.time).localeCompare(String(b.time)));
+      dbData[m] = results[idx].sort((a, b) => String(a.time).localeCompare(String(b.time)));
     });
-    
+
     // Calculate error rate
     dbData['err_rate'] = dbData['service_count'].map((sc, i) => {
       const errc = dbData['service_err_count'][i];
@@ -89,12 +89,12 @@ async function loadData(domainId, instanceId, startTime, endTime, targetMetric) 
       const rate = count > 0 ? (errCount / count) * 100 : 0;
       return { time: sc.time, value: rate };
     });
-    
+
     globalChartData = dbData;
-    
+
     initUI(targetMetric);
-    
-  } catch(e) {
+
+  } catch (e) {
     console.error(e);
     document.getElementById('loadingOverlay').innerHTML = '<h2>Error loading data</h2>';
   } finally {
@@ -133,18 +133,18 @@ async function fetchMetricData(domainId, instanceId, startTime, endTime, interva
 function initUI(targetMetric) {
   const chartsPanel = document.getElementById('chartsPanel');
   const statsPanel = document.getElementById('statsPanel');
-  
+
   // Clear containers except headers/crosshair
   const crosshair = document.getElementById('crosshair-line');
   const clickedLine = document.getElementById('clicked-line');
   chartsPanel.innerHTML = '';
   chartsPanel.appendChild(crosshair);
   if (clickedLine) chartsPanel.appendChild(clickedLine);
-  
+
   const statHeader = document.getElementById('selectedTimeHeader');
   statsPanel.innerHTML = '';
   // statsPanel.appendChild(statHeader); is no longer needed since it's moved to top-header-container
-  
+
   activeMetrics.forEach(m => {
     // Chart container
     const chartWrapper = document.createElement('div');
@@ -152,7 +152,7 @@ function initUI(targetMetric) {
     if (m.key === targetMetric || (targetMetric === 'service_err_count' && m.key === 'err_rate')) {
       chartWrapper.classList.add('highlighted');
     }
-    
+
     chartWrapper.innerHTML = `
       <div class="chart-title">${m.label} (${m.unit})</div>
       <div class="canvas-container">
@@ -160,7 +160,7 @@ function initUI(targetMetric) {
       </div>
     `;
     chartsPanel.appendChild(chartWrapper);
-    
+
     // Stat container
     const statBox = document.createElement('div');
     statBox.className = 'stat-box';
@@ -170,21 +170,21 @@ function initUI(targetMetric) {
       <div class="stat-value" id="statval_${m.key}">-</div>
     `;
     statsPanel.appendChild(statBox);
-    
+
     // Create Chart
     createChart(m.key, m.label, m.unit, m.color);
   });
-  
+
   updateStatsPanel(-1); // average
 }
 
 function createChart(metricKey, label, unit, color) {
   const ctx = document.getElementById(`chart_${metricKey}`).getContext('2d');
   const data = globalChartData[metricKey] || [];
-  
+
   const labels = data.map(d => formatTimeLabel(d.time));
   const values = data.map(d => d.value);
-  
+
   const chartType = (metricKey === 'err_rate' || metricKey === 'sys_cpu' || metricKey === 'heap_usage') ? 'line' : 'bar';
 
   const chart = new Chart(ctx, {
@@ -259,7 +259,7 @@ function createChart(metricKey, label, unit, color) {
       }
     }
   });
-  
+
   chartInstances[metricKey] = chart;
 }
 
@@ -267,7 +267,7 @@ function syncHovers(idx) {
   // If clicked, we keep the stats locked to the clicked index unless hovering something else?
   // Requirements: "차트에서 마우스 클릭시 해당하는 시간대의 메트릭스 값을 표시한다. ... 마우스 호버시, 해당 시간대 영역을 하이라이트 표시 및 툴팁"
   // So clicks lock the stats panel until another click. Hovers show tooltips and may update crosshair.
-  
+
   activeMetrics.forEach(m => {
     const c = chartInstances[m.key];
     if (c) {
@@ -281,7 +281,7 @@ function syncHovers(idx) {
       c.update();
     }
   });
-  
+
   // Show Crosshair
   const crosshair = document.getElementById('crosshair-line');
   if (idx !== -1) {
@@ -292,7 +292,7 @@ function syncHovers(idx) {
       const element = meta.data[idx];
       let boxWidth = 16; // default width fallback
       const xPos = element.x;
-      
+
       if (firstChart.config.type === 'bar' && element.width) {
         boxWidth = element.width;
       } else {
@@ -303,20 +303,20 @@ function syncHovers(idx) {
           boxWidth = meta.data[idx + 1].x - element.x;
         }
       }
-      
+
       // adjust width a bit to match the 1px gap visual
       boxWidth = boxWidth * 0.95;
 
       const panel = document.getElementById('chartsPanel');
       const panelRect = panel.getBoundingClientRect();
       const canvasRect = firstChart.canvas.getBoundingClientRect();
-      
+
       const leftOffset = canvasRect.left - panelRect.left + panel.scrollLeft;
 
       // Vertical boundaries
       const lastChart = chartInstances[activeMetrics[activeMetrics.length - 1].key];
       const lastCanvasRect = lastChart.canvas.getBoundingClientRect();
-      
+
       const topOffset = canvasRect.top + firstChart.chartArea.top - panelRect.top + panel.scrollTop;
       const bottomOffset = lastCanvasRect.top + lastChart.chartArea.bottom - panelRect.top + panel.scrollTop;
       const boxHeight = bottomOffset - topOffset;
@@ -330,7 +330,7 @@ function syncHovers(idx) {
   } else {
     crosshair.style.display = 'none';
   }
-  
+
   // Update clicked line
   const clickedLine = document.getElementById('clicked-line');
   if (clickedLine) {
@@ -341,7 +341,7 @@ function syncHovers(idx) {
         const element = meta.data[selectedTimeIndex];
         let boxWidth = 16;
         const xPos = element.x;
-        
+
         if (firstChart.config.type === 'bar' && element.width) {
           boxWidth = element.width;
         } else {
@@ -361,7 +361,7 @@ function syncHovers(idx) {
         // Vertical boundaries
         const lastChart = chartInstances[activeMetrics[activeMetrics.length - 1].key];
         const lastCanvasRect = lastChart.canvas.getBoundingClientRect();
-        
+
         const topOffset = canvasRect.top + firstChart.chartArea.top - panelRect.top + panel.scrollTop;
         const bottomOffset = lastCanvasRect.top + lastChart.chartArea.bottom - panelRect.top + panel.scrollTop;
         const boxHeight = bottomOffset - topOffset;
@@ -376,7 +376,7 @@ function syncHovers(idx) {
       clickedLine.style.display = 'none';
     }
   }
-  
+
   // Update stats panel if not locked by selection
   if (selectedTimeIndex === -1) {
     updateStatsPanel(idx !== -1 ? idx : -1);
@@ -385,14 +385,14 @@ function syncHovers(idx) {
 
 function updateStatsPanel(idx) {
   const header = document.getElementById('selectedTimeHeader');
-  
+
   if (idx === -1) {
-    header.textContent = '1時間全体の平均';
+    header.textContent = '1時間の平均';
     activeMetrics.forEach(m => {
       const data = globalChartData[m.key] || [];
       const valid = data.filter(d => d.value !== null && d.value !== undefined);
       const avg = valid.length > 0 ? valid.reduce((s, d) => s + d.value, 0) / valid.length : 0;
-      
+
       const el = document.getElementById(`statval_${m.key}`);
       if (el) {
         el.textContent = `${formatNumber(avg, m.unit)}`;
@@ -406,12 +406,12 @@ function updateStatsPanel(idx) {
       const data = globalChartData[m.key] || [];
       const item = data[idx];
       let val = 0;
-      
+
       if (item) {
         val = item.value || 0;
         timeStr = formatTimeLabel(item.time, true);
       }
-      
+
       const el = document.getElementById(`statval_${m.key}`);
       if (el) {
         el.textContent = `${formatNumber(val, m.unit)}`;

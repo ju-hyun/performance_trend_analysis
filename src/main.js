@@ -1527,7 +1527,7 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       return {
         time: timeItem.time,
         value: value, 
-        yValue: value, // Use the calculated value (rate or time) for Y-axis
+        yValue: (currentMetric === 'service_count') ? timeItem.value : value, // Use Response Time for Y-axis or list metrics when Hit Count is selected
         count: countItem ? countItem.value : 0
       };
     });
