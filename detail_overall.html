@@ -12,34 +12,42 @@
   <style>
     /* Specific styles for detail_overall.html layout */
     body {
-      overflow: hidden; /* Prevent full body scroll, handle internally */
+      overflow: hidden;
+      /* Prevent full body scroll, handle internally */
     }
+
     .detail-container {
       display: flex;
-      height: 100vh;
+      height: calc(100vh - 45px);
       width: 100vw;
       background-color: var(--bg-color);
     }
+
     .charts-panel {
-      width: 90%;
+      width: 88%;
       height: 100%;
-      padding: 10px;
+      padding: 10px 5px 10px 10px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 15px;
+      /* Increased gap to reduce chart heights */
       overflow-y: auto;
+      position: relative;
     }
+
     .stats-panel {
-      width: 10%;
+      width: 12%;
       height: 100%;
-      background-color: var(--sidebar-active);
-      border-left: 1px solid var(--border-color);
-      padding: 10px;
+      background-color: var(--bg-color);
+      /* Same as charts panel */
+      padding: 10px 10px 10px 5px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 15px;
+      /* Increased gap to match charts */
       overflow-y: auto;
     }
+
     .chart-row {
       flex: 1;
       min-height: 120px;
@@ -49,10 +57,14 @@
       position: relative;
       padding: 5px 10px;
     }
+
     .chart-row.highlighted {
       border: 2px solid var(--primary-color);
       box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+      background-color: rgba(34, 197, 94, 0.05);
+      /* Transparent background for visibility */
     }
+
     .chart-title {
       position: absolute;
       top: 5px;
@@ -62,11 +74,14 @@
       color: var(--text-secondary);
       z-index: 10;
     }
+
     .canvas-container {
       width: 100%;
       height: 100%;
-      padding-top: 15px; /* space for title */
+      padding-top: 15px;
+      /* space for title */
     }
+
     .stat-box {
       flex: 1;
       min-height: 120px;
@@ -79,12 +94,14 @@
       align-items: center;
       padding: 5px;
     }
+
     .stat-label {
       font-size: 0.7rem;
       color: var(--text-secondary);
       text-align: center;
       margin-bottom: 5px;
     }
+
     .stat-value {
       font-size: 1rem;
       font-weight: 700;
@@ -92,31 +109,74 @@
       text-align: center;
       word-break: break-all;
     }
+
     .stat-value.highlighted {
       color: var(--primary-color);
     }
+
+    .title-container {
+      width: 88%;
+      padding: 15px 5px 5px 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .title-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .selected-time-container {
+      width: 12%;
+      padding: 15px 10px 5px 5px;
+    }
+
     .selected-time-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 0.8rem;
       font-weight: 700;
       text-align: center;
-      margin-bottom: 10px;
       color: var(--text-primary);
       background: white;
-      padding: 5px;
+      padding: 8px;
       border-radius: 4px;
       border: 1px solid var(--border-color);
+      margin: 0;
+      height: 100%;
     }
-    
-    /* Crosshair line */
+
+    .top-header-container {
+      width: 100vw;
+      display: flex;
+      background-color: var(--bg-color);
+    }
+
+    /* Crosshair box */
     #crosshair-line {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background-color: rgba(239, 68, 68, 0.6);
+      /* width will be set dynamically */
+      background-color: rgba(100, 116, 139, 0.15);
+      /* Box shape instead of line */
       pointer-events: none;
       z-index: 50;
       display: none;
+      border-radius: 4px;
+    }
+
+    /* Clicked box */
+    #clicked-line {
+      position: absolute;
+      background-color: rgba(239, 68, 68, 0.15);
+      /* Reddish */
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      pointer-events: none;
+      z-index: 49;
+      display: none;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -129,13 +189,22 @@
     </div>
   </div>
 
+  <div class="top-header-container">
+    <div class="title-container">
+      <h2 class="title-label">詳細データ</h2>
+    </div>
+    <div class="selected-time-container">
+      <div class="selected-time-header" id="selectedTimeHeader">1時間全体の平均</div>
+    </div>
+  </div>
+
   <div class="detail-container">
     <div class="charts-panel" id="chartsPanel">
       <div id="crosshair-line"></div>
+      <div id="clicked-line"></div>
       <!-- Charts will be generated here -->
     </div>
     <div class="stats-panel" id="statsPanel">
-      <div class="selected-time-header" id="selectedTimeHeader">1時間の平均</div>
       <!-- Stats will be generated here -->
     </div>
   </div>

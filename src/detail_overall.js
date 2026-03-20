@@ -18,6 +18,7 @@ const METRICS = [
 let globalChartData = {};
 let chartInstances = {};
 let selectedTimeIndex = -1;
+let activeMetrics = [];
 
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
@@ -57,6 +58,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('loadingOverlay').innerHTML = '<h2>エラー: 必須パラメータ不足 (start_time 等)</h2>';
     return;
   }
+  
+  activeMetrics = params.instance_id ? METRICS : METRICS.filter(m => m.key !== 'sys_cpu' && m.key !== 'heap_usage');
   
   const endTime = getEndTime(params.start_time);
   
@@ -133,14 +136,16 @@ function initUI(targetMetric) {
   
   // Clear containers except headers/crosshair
   const crosshair = document.getElementById('crosshair-line');
+  const clickedLine = document.getElementById('clicked-line');
   chartsPanel.innerHTML = '';
   chartsPanel.appendChild(crosshair);
+  if (clickedLine) chartsPanel.appendChild(clickedLine);
   
   const statHeader = document.getElementById('selectedTimeHeader');
   statsPanel.innerHTML = '';
-  statsPanel.appendChild(statHeader);
+  // statsPanel.appendChild(statHeader); is no longer needed since it's moved to top-header-container
   
-  METRICS.forEach(m => {
+  activeMetrics.forEach(m => {
     // Chart container
     const chartWrapper = document.createElement('div');
     chartWrapper.className = 'chart-row';
@@ -180,8 +185,10 @@ function createChart(metricKey, label, unit, color) {
   const labels = data.map(d => formatTimeLabel(d.time));
   const values = data.map(d => d.value);
   
+  const chartType = (metricKey === 'err_rate' || metricKey === 'sys_cpu' || metricKey === 'heap_usage') ? 'line' : 'bar';
+
   const chart = new Chart(ctx, {
-    type: 'line',
+    type: chartType,
     data: {
       labels: labels,
       datasets: [{
@@ -189,11 +196,13 @@ function createChart(metricKey, label, unit, color) {
         data: values,
         borderColor: color,
         backgroundColor: color + '33', // 20% opacity
-        borderWidth: 1.5,
+        borderWidth: 1,
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 4,
-        tension: 0.1
+        tension: 0.1,
+        barPercentage: chartType === 'bar' ? 0.95 : undefined,
+        categoryPercentage: chartType === 'bar' ? 1.0 : undefined
       }]
     },
     options: {
@@ -218,9 +227,10 @@ function createChart(metricKey, label, unit, color) {
       },
       scales: {
         x: {
-          display: metricKey === METRICS[METRICS.length - 1].key, // only show x-axis for the last chart
+          display: metricKey === activeMetrics[activeMetrics.length - 1].key, // only show x-axis for the last chart
           grid: { display: false },
-          ticks: { maxTicksLimit: 12, autoSkip: true }
+          ticks: { maxTicksLimit: 12, autoSkip: true },
+          offset: true // Fix cut-off bars and hover box hit areas
         },
         y: {
           beginAtZero: true,
@@ -240,9 +250,11 @@ function createChart(metricKey, label, unit, color) {
         if (activeElements.length > 0) {
           selectedTimeIndex = activeElements[0].index;
           updateStatsPanel(selectedTimeIndex);
+          syncHovers(activeElements[0].index); // update clicked line position visually
         } else {
           selectedTimeIndex = -1;
           updateStatsPanel(-1);
+          syncHovers(-1); // update clicked line and hide it
         }
       }
     }
@@ -256,7 +268,7 @@ function syncHovers(idx) {
   // Requirements: "차트에서 마우스 클릭시 해당하는 시간대의 메트릭스 값을 표시한다. ... 마우스 호버시, 해당 시간대 영역을 하이라이트 표시 및 툴팁"
   // So clicks lock the stats panel until another click. Hovers show tooltips and may update crosshair.
   
-  METRICS.forEach(m => {
+  activeMetrics.forEach(m => {
     const c = chartInstances[m.key];
     if (c) {
       if (idx !== -1) {
@@ -274,18 +286,95 @@ function syncHovers(idx) {
   const crosshair = document.getElementById('crosshair-line');
   if (idx !== -1) {
     // Find x-coordinate of the first chart
-    const firstChart = chartInstances[METRICS[0].key];
+    const firstChart = chartInstances[activeMetrics[0].key];
     const meta = firstChart.getDatasetMeta(0);
     if (meta && meta.data && meta.data[idx]) {
-      const xPos = meta.data[idx].x;
-      // Get the bounding rect of the canvas to adjust global position within the panels
-      const canvasLeft = firstChart.canvas.offsetLeft; // should be 0 inside the container
-      const paddingLeft = parseInt(window.getComputedStyle(firstChart.canvas.parentElement.parentElement).paddingLeft, 10);
+      const element = meta.data[idx];
+      let boxWidth = 16; // default width fallback
+      const xPos = element.x;
+      
+      if (firstChart.config.type === 'bar' && element.width) {
+        boxWidth = element.width;
+      } else {
+        // approximate box width for line charts
+        if (idx > 0) {
+          boxWidth = element.x - meta.data[idx - 1].x;
+        } else if (meta.data.length > 1) {
+          boxWidth = meta.data[idx + 1].x - element.x;
+        }
+      }
+      
+      // adjust width a bit to match the 1px gap visual
+      boxWidth = boxWidth * 0.95;
+
+      const panel = document.getElementById('chartsPanel');
+      const panelRect = panel.getBoundingClientRect();
+      const canvasRect = firstChart.canvas.getBoundingClientRect();
+      
+      const leftOffset = canvasRect.left - panelRect.left + panel.scrollLeft;
+
+      // Vertical boundaries
+      const lastChart = chartInstances[activeMetrics[activeMetrics.length - 1].key];
+      const lastCanvasRect = lastChart.canvas.getBoundingClientRect();
+      
+      const topOffset = canvasRect.top + firstChart.chartArea.top - panelRect.top + panel.scrollTop;
+      const bottomOffset = lastCanvasRect.top + lastChart.chartArea.bottom - panelRect.top + panel.scrollTop;
+      const boxHeight = bottomOffset - topOffset;
+
       crosshair.style.display = 'block';
-      crosshair.style.left = (paddingLeft + xPos) + 'px';
+      crosshair.style.width = boxWidth + 'px';
+      crosshair.style.left = (leftOffset + xPos - boxWidth / 2) + 'px';
+      crosshair.style.top = topOffset + 'px';
+      crosshair.style.height = boxHeight + 'px';
     }
   } else {
     crosshair.style.display = 'none';
+  }
+  
+  // Update clicked line
+  const clickedLine = document.getElementById('clicked-line');
+  if (clickedLine) {
+    if (selectedTimeIndex !== -1) {
+      const firstChart = chartInstances[activeMetrics[0].key];
+      const meta = firstChart.getDatasetMeta(0);
+      if (meta && meta.data && meta.data[selectedTimeIndex]) {
+        const element = meta.data[selectedTimeIndex];
+        let boxWidth = 16;
+        const xPos = element.x;
+        
+        if (firstChart.config.type === 'bar' && element.width) {
+          boxWidth = element.width;
+        } else {
+          if (selectedTimeIndex > 0) {
+            boxWidth = element.x - meta.data[selectedTimeIndex - 1].x;
+          } else if (meta.data.length > 1) {
+            boxWidth = meta.data[selectedTimeIndex + 1].x - element.x;
+          }
+        }
+        boxWidth = boxWidth * 0.95;
+
+        const panel = document.getElementById('chartsPanel');
+        const panelRect = panel.getBoundingClientRect();
+        const canvasRect = firstChart.canvas.getBoundingClientRect();
+        const leftOffset = canvasRect.left - panelRect.left + panel.scrollLeft;
+
+        // Vertical boundaries
+        const lastChart = chartInstances[activeMetrics[activeMetrics.length - 1].key];
+        const lastCanvasRect = lastChart.canvas.getBoundingClientRect();
+        
+        const topOffset = canvasRect.top + firstChart.chartArea.top - panelRect.top + panel.scrollTop;
+        const bottomOffset = lastCanvasRect.top + lastChart.chartArea.bottom - panelRect.top + panel.scrollTop;
+        const boxHeight = bottomOffset - topOffset;
+
+        clickedLine.style.display = 'block';
+        clickedLine.style.width = boxWidth + 'px';
+        clickedLine.style.left = (leftOffset + xPos - boxWidth / 2) + 'px';
+        clickedLine.style.top = topOffset + 'px';
+        clickedLine.style.height = boxHeight + 'px';
+      }
+    } else {
+      clickedLine.style.display = 'none';
+    }
   }
   
   // Update stats panel if not locked by selection
@@ -299,7 +388,7 @@ function updateStatsPanel(idx) {
   
   if (idx === -1) {
     header.textContent = '1時間全体の平均';
-    METRICS.forEach(m => {
+    activeMetrics.forEach(m => {
       const data = globalChartData[m.key] || [];
       const valid = data.filter(d => d.value !== null && d.value !== undefined);
       const avg = valid.length > 0 ? valid.reduce((s, d) => s + d.value, 0) / valid.length : 0;
@@ -313,7 +402,7 @@ function updateStatsPanel(idx) {
   } else {
     // Specific time
     let timeStr = '';
-    METRICS.forEach(m => {
+    activeMetrics.forEach(m => {
       const data = globalChartData[m.key] || [];
       const item = data[idx];
       let val = 0;
