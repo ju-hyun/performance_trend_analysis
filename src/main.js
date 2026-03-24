@@ -100,9 +100,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      // Prevent clicking if the overall details layer is currently displayed
-      const detailLayer = document.getElementById('overallDetailLayer');
-      if (detailLayer && detailLayer.classList.contains('open')) {
+      // Prevent clicking if any details layer is currently displayed
+      const overallLayer = document.getElementById('overallDetailLayer');
+      const dayHourLayer = document.getElementById('dayHourDetailLayer');
+      if ((overallLayer && overallLayer.classList.contains('open')) ||
+          (dayHourLayer && dayHourLayer.classList.contains('open'))) {
         return;
       }
 
@@ -1559,8 +1561,8 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 
   // Group data by day and hour
-  // dayHourMap[dayIndex][hourIndex] = { sum: 0, count: 0 }
-  const dayHourMap = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ sum: 0, count: 0 })));
+  // dayHourMap[dayIndex][hourIndex] = { sum: 0, count: 0, data: [] }
+  const dayHourMap = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => ({ sum: 0, count: 0, data: [] })));
 
   // Group items by date, then map each date's items to hours 0..23 in order
   const groupedByDate = {};
@@ -1584,6 +1586,8 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
       if (item.count > 0) {
         dayHourMap[dayIdx][hour].sum += item.value;
         dayHourMap[dayIdx][hour].count++;
+        // Add item to data array for sliding layer
+        dayHourMap[dayIdx][hour].data.push(item);
       }
     });
   });
@@ -1690,7 +1694,11 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const formattedAvg = avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${formattedAvg}${unit}` : 'No data';
-      html += `<td style="background-color: ${bgColor}" 
+      html += `<td style="background-color: ${bgColor}; cursor: ${cell.count > 0 ? 'pointer' : 'default'};" 
+                class="dayhour-cell"
+                data-day="${dIdx}"
+                data-hour="${h}"
+                data-count="${cell.count}"
                 onmouseover="showHeatmapTooltip(event, '${tooltipText}')" 
                 onmouseout="hideHeatmapTooltip()">
               </td>`;
@@ -1700,7 +1708,79 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   html += '</tbody></table>';
 
   container.innerHTML = html;
+
+  // Bind click events to meaningful cells
+  const cells = container.querySelectorAll('.dayhour-cell');
+  cells.forEach(cellElement => {
+    const count = parseInt(cellElement.getAttribute('data-count'), 10);
+    if (count > 0) {
+      cellElement.addEventListener('click', () => {
+        const dIdx = parseInt(cellElement.getAttribute('data-day'), 10);
+        const hInt = parseInt(cellElement.getAttribute('data-hour'), 10);
+        const cellData = dayHourMap[dIdx][hInt].data;
+        if (cellData && cellData.length > 0) {
+          showDayHourListLayer(cellData, metric, isHitSelected);
+        }
+      });
+    }
+  });
 }
+
+window.showDayHourListLayer = function(binData, metric, isHitSelected) {
+  const layer = document.getElementById('dayHourDetailLayer');
+  if (!layer) return;
+
+  layer.classList.add('open');
+
+  const tbody = document.getElementById('dayHourDetailListBody');
+  const metricHeader = document.getElementById('dayHourDetailMetricHeader');
+
+  // Set Metric Header Unit
+  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+  const labelName = document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || 'Value';
+  metricHeader.textContent = `${labelName}`; // Kept short, unit included in text
+
+  // Sort chronologically
+  const sortedData = [...binData].sort((a, b) => String(a.time).localeCompare(String(b.time)));
+
+  // Find max value for the horizontal bar graph scaling
+  const maxVal = d3.max(sortedData, d => (d.yValue !== undefined ? d.yValue : d.value)) || 1;
+
+  tbody.innerHTML = '';
+  
+  const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  
+  sortedData.forEach((item, index) => {
+    const timeStr = String(item.time);
+    const yyyy = timeStr.substring(0, 4);
+    const MM = timeStr.substring(4, 6);
+    const dd = timeStr.substring(6, 8);
+    const dateFormatted = `${yyyy}.${MM}.${dd}`;
+
+    const value = item.yValue !== undefined ? item.yValue : item.value;
+    const metricFormatted = `${formatVal(value)}${unit}`;
+    const barWidthPercent = (value / maxVal) * 100;
+    
+    // Horizontal Bar with value
+    const barHtml = `
+      <div class="value-bar-wrapper">
+        <div class="value-bar-container">
+          <div class="value-bar-fill" style="width: ${barWidthPercent}%;"></div>
+        </div>
+        <div class="value-text">${metricFormatted}</div>
+      </div>
+    `;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${dateFormatted}</td>
+      <td>${barHtml}</td>
+    `;
+    
+    tbody.appendChild(tr);
+  });
+};
 
 function renderOverallHeatmap(data, isHitSelected, metric) {
   const container = document.getElementById('overallHeatmap');
@@ -2189,6 +2269,13 @@ document.addEventListener('DOMContentLoaded', () => {
           .attr('stroke', 'white')
           .attr('stroke-width', '0.5');
       }
+    });
+  }
+
+  const closeDayHourBtn = document.getElementById('closeDayHourLayer');
+  if (closeDayHourBtn) {
+    closeDayHourBtn.addEventListener('click', () => {
+      document.getElementById('dayHourDetailLayer').classList.remove('open');
     });
   }
 });

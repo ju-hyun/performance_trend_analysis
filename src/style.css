@@ -1031,6 +1031,87 @@ body {
   right: 0;
 }
 
+/* Day-Hour Heatmap Detail Slide-in Layer */
+.dayhour-detail-layer {
+  position: fixed;
+  top: 0;
+  left: -35%;
+  width: 33.33%;
+  height: 100vh;
+  background-color: var(--card-bg);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
+}
+
+.dayhour-detail-layer.open {
+  left: 0;
+}
+
+.dayhour-detail-layer .layer-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-secondary);
+}
+
+.dayhour-detail-layer .layer-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.dayhour-detail-layer .layer-content {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* Horizontal Bar styling */
+.value-bar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.value-bar-container {
+  flex: 1;
+  height: 8px; /* slim bar */
+  background-color: transparent;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* right-aligned to grow towards the left? No, user example shows left aligned: --- 3231ms */
+}
+
+/* User's example: 2025.05.01  ---    3231ms */
+/* The bar comes before the text, and grows from left to right. */
+.value-bar-container {
+  justify-content: flex-start;
+}
+
+.value-bar-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.value-text {
+  min-width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .overall-detail-layer .layer-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
