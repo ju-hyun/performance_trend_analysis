@@ -25,12 +25,17 @@ export default defineConfig(() => {
             }
         },
         build: {
-            assetsDir: 'pta/assets', // assets 폴더를 pta 하위로 이동
+            assetsDir: 'pta/asserts',
             rollupOptions: {
                 input: {
                     main: 'index.html',
                     pta: 'pta/index.html',
                     help: 'pta/help.html'
+                },
+                output: {
+                    entryFileNames: 'pta/asserts/[name]-[hash].js',
+                    chunkFileNames: 'pta/asserts/[name]-[hash].js',
+                    assetFileNames: 'pta/asserts/[name]-[hash].[ext]'
                 }
             }
         }
