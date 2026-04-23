@@ -25,6 +25,7 @@ export default defineConfig(() => {
             }
         },
         build: {
+            assetsDir: 'pta/assets', // assets 폴더를 pta 하위로 이동
             rollupOptions: {
                 input: {
                     main: 'index.html',
