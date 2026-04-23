@@ -4,67 +4,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance Trend Analysis</title>
+    <title>JENNIFER Expansion</title>
+    <!-- Pretendard JP Font -->
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
+        rel="stylesheet" crossorigin />
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #22c55e;
+            --accent-gradient: linear-gradient(135deg, #22c55e 0%, #3b82f6 100%);
+            --hover-gradient: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            background-color: #f8fafc;
-            color: #1e293b;
+            padding: 0;
         }
 
+        body {
+            font-family: "Pretendard JP Variable", "Pretendard JP", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 4rem 6rem;
+            line-height: 1.6;
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 5rem;
+            max-width: 800px;
+        }
+
+        .page-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+        }
+
+        .page-header p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 600px;
+        }
+
+        /* Card Grid Container */
+        .grid-container {
+            width: 100%;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 2.5rem;
+        }
+
+        /* Card Component */
         .card {
-            background: white;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
             padding: 3rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
-        h1 {
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-            color: #0f172a;
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--hover-gradient);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 0;
         }
 
-        p {
-            color: #64748b;
-            margin-bottom: 2rem;
-            line-height: 1.5;
+        .card:hover {
+            transform: translateY(-12px);
+            border-color: rgba(34, 197, 94, 0.4);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .card h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+            min-height: 3rem;
         }
 
         .btn {
             display: inline-block;
-            padding: 0.75rem 2rem;
-            background-color: #22c55e;
+            padding: 1rem 2rem;
+            background: var(--accent-gradient);
             color: white;
             text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.4);
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-align: center;
+            align-self: flex-start;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
         }
 
         .btn:hover {
-            background-color: #16a34a;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(34, 197, 94, 0.5);
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.5);
+            filter: brightness(1.15);
+        }
+
+        /* Coming Soon Card Style */
+        .card.disabled {
+            opacity: 0.6;
+            border-style: dashed;
+            cursor: default;
+        }
+
+        .card.disabled:hover {
+            transform: none;
+            border-color: var(--card-border);
+            box-shadow: none;
+        }
+
+        .card.disabled:hover::before {
+            opacity: 0;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            body {
+                padding: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 2rem 1.5rem;
+            }
+
+            .page-header h1 {
+                font-size: 2.2rem;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 2rem;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-        <h1>Performance Trend Analysis</h1>
-        <p>システムの性能推移を分析し、レポートを確認します。</p>
-        <a href="pta/" class="btn">システムスタート</a>
+    <header class="page-header">
+        <h1>JENNIFER Expansion</h1>
+        <p>JENNIFERの機能を拡大して、分析データをより深く可視化する画面です。</p>
+    </header>
+
+    <div class="grid-container">
+        <main class="card-grid">
+            <!-- PTA Card -->
+            <article class="card">
+                <div class="card-content">
+                    <span class="card-icon">📊</span>
+                    <h2>Performance Trend Analysis</h2>
+                    <p>システムの長期的な性能推移を分析し、時間帯別/曜日別のパターンを可視化して最適なキャパシティープランニングを支援します。</p>
+                    <a href="pta/" class="btn">システム開始</a>
+                </div>
+            </article>
+
+            <!-- Placeholder for future modules -->
+            <article class="card disabled">
+                <div class="card-content">
+                    <span class="card-icon" style="filter: grayscale(1);">🚀</span>
+                    <h2>新しい分析画面</h2>
+                    <p>新しい分析画面...</p>
+                    <div class="tag">Coming Soon</div>
+                </div>
+            </article>
+
+            <!-- Another Placeholder
+            <article class="card disabled">
+                <div class="card-content">
+                    <span class="card-icon" style="filter: grayscale(1);">🛡️</span>
+                    <h2>Security Audit</h2>
+                    <p>시스템 접근 및 실행 로그를 분석하여 보안 취약점과 이상 징후를 실시간으로 탐지합니다.</p>
+                    <div class="tag">Coming Soon</div>
+                </div>
+            </article>
+            -->
+        </main>
     </div>
 </body>
 
