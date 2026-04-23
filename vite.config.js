@@ -33,9 +33,9 @@ export default defineConfig(() => {
                     help: 'pta/help.html'
                 },
                 output: {
-                    entryFileNames: 'pta/asserts/[name]-[hash].js',
-                    chunkFileNames: 'pta/asserts/[name]-[hash].js',
-                    assetFileNames: 'pta/asserts/[name]-[hash].[ext]'
+                    entryFileNames: 'pta/asserts/[name].js',
+                    chunkFileNames: 'pta/asserts/[name].js',
+                    assetFileNames: 'pta/asserts/[name].[ext]'
                 }
             }
         }
