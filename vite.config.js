@@ -1,27 +1,22 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd());
-
-    if (!env.VITE_API_BASE_URL) {
-        console.error('\x1b[31m%s\x1b[0m', 'ERR_CONFIG_MISSING: VITE_API_BASE_URL is not defined in .env file.');
-    }
-
+export default defineConfig(() => {
     return {
+        base: './', // 빌드 시 상대 경로 사용
         server: {
             host: '0.0.0.0',
             port: 5177,
             strictPort: true,
-            proxy: env.VITE_API_BASE_URL ? {
+            proxy: {
                 '/api': {
-                    target: env.VITE_API_BASE_URL,
+                    target: 'https://13.158.36.15:8443/',
                     changeOrigin: true,
-                    secure: false, // 스스로 서명한 인증서 에러 우회
+                    secure: false,
                     onProxyRes: (proxyRes) => {
                         proxyRes.headers['Cross-Origin-Resource-Policy'] = 'cross-origin';
                     }
                 }
-            } : {},
+            },
             headers: {
                 'Content-Security-Policy': "frame-ancestors 'self' * file://*",
                 'Cross-Origin-Resource-Policy': 'cross-origin',
@@ -32,8 +27,9 @@ export default defineConfig(({ mode }) => {
         build: {
             rollupOptions: {
                 input: {
-                    main: 'analysis_perf_trend.html',
-                    help: 'help.html'
+                    main: 'index.html',
+                    pta: 'pta/index.html',
+                    help: 'pta/help.html'
                 }
             }
         }
