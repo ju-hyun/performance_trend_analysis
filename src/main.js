@@ -2319,16 +2319,7 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
       <td>${metricFormatted}</td>
     `;
 
-    tr.addEventListener('click', () => {
-      // Open detail popup
-      const startTime = item.time.padEnd(12, '0'); // pad to yyyyMMddHHmm
-      // Extract current domain and instance from UI or state
-      const domainId = typeof getCurrentDomainId === 'function' ? getCurrentDomainId() : '';
-      const instanceId = document.getElementById('instanceSelect')?.value || '';
-      let winUrl = `detail_overall.html?start_time=${startTime}&metric=${metric}&domain_id=${domainId}`;
-      if (instanceId) winUrl += `&instance_id=${instanceId}`;
-      window.open(winUrl, 'DetailOverallPopup', 'width=1400,height=900,scrollbars=yes,resizable=yes');
-    });
+    // 상세 팝업 오픈 로직 제거 (detail_overall.html 삭제됨)
 
     tbody.appendChild(tr);
   });

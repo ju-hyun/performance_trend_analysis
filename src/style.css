@@ -1174,16 +1174,10 @@ body {
   text-align: center;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
-  transition: background-color 0.15s;
-  cursor: pointer;
 }
 
 .detail-list-table td:first-child {
   text-align: center;
   color: var(--text-secondary);
   font-weight: 500;
-}
-
-.detail-list-table tbody tr:hover td {
-  background-color: var(--sidebar-active);
 }
