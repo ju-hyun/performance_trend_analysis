@@ -37,12 +37,29 @@
             </div>
           </div>
         </div>
-        <div class="filter-group instance-filter-group">
-          <label>インスタンス</label>
+
+        <div class="filter-group target-type-group">
+          <label>対象</label>
+          <div class="toggle-group">
+            <input type="radio" id="typeInstance" name="targetType" value="instance" checked>
+            <label for="typeInstance">インスタンス</label>
+            <input type="radio" id="typeBusiness" name="targetType" value="business">
+            <label for="typeBusiness">ビジネス</label>
+          </div>
+        </div>
+
+        <div class="filter-group instance-filter-group" id="instanceFilterArea">
           <select id="instanceSelect" class="form-select">
-            <option value="">ドメイン全体</option>
+            <option value="">全体インスタンス</option>
           </select>
         </div>
+
+        <div class="filter-group business-filter-group hidden" id="businessFilterArea">
+          <select id="businessSelect" class="form-select">
+            <option value="">全体ビジネス</option>
+          </select>
+        </div>
+
         <div class="filter-actions">
           <button id="mainHelpBtn" class="help-btn-circle" title="ヘルプ">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"

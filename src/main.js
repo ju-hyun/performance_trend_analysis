@@ -3,8 +3,10 @@ import { config } from './config.js';
 
 // Global variables
 const API_BASE = (config.API_DOMAIN || '') + '/api/dbmetrics';
+const BUSINESS_METRICS_API_BASE = (config.API_DOMAIN || '') + '/api/dbmetrics/business';
 const DOMAIN_API_BASE = (config.API_DOMAIN || '') + '/api/domain';
 const INSTANCE_API_BASE = (config.API_DOMAIN || '') + '/api/instance';
+const BUSINESS_API_BASE = (config.API_DOMAIN || '') + '/api/business';
 const TOKEN = config.TOKEN;
 
 const MONTH_COLORS = [
@@ -48,13 +50,17 @@ let metricThresholds = {};
 let overallYThresholds = {};
 
 function updateSummaryCardsDisabledState() {
-  if (!instanceSelect) return;
-  const isInstanceSelected = !!instanceSelect.value;
+  const targetType = document.querySelector('input[name="targetType"]:checked')?.value || 'instance';
+  const instanceId = instanceSelect.value;
+  const businessId = businessSelect.value;
+
+  const isTargetSelected = targetType === 'instance' ? !!instanceId : !!businessId;
   const cpuCard = document.getElementById('avgSysCpu')?.closest('.summary-card');
   const memCard = document.getElementById('avgHeapUsage')?.closest('.summary-card');
 
   if (cpuCard && memCard) {
-    if (isInstanceSelected) {
+    // CPU/Memory are instance-only metrics
+    if (targetType === 'instance' && isTargetSelected) {
       cpuCard.classList.remove('disabled');
       memCard.classList.remove('disabled');
     } else {
@@ -66,6 +72,10 @@ function updateSummaryCardsDisabledState() {
 
 // DOM Elements
 const instanceSelect = document.getElementById('instanceSelect');
+const businessSelect = document.getElementById('businessSelect');
+const instanceFilterArea = document.getElementById('instanceFilterArea');
+const businessFilterArea = document.getElementById('businessFilterArea');
+const typeRadios = document.querySelectorAll('input[name="targetType"]');
 const btnSysCpu = document.getElementById('btnSysCpu');
 const btnHeapUsage = document.getElementById('btnHeapUsage');
 
@@ -97,6 +107,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Even if domains failed to load (CORS/Network error), try to load data (which will trigger mock data fallback)
   loadData();
 
+  // Target Type Toggle
+  typeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const type = e.target.value;
+      if (type === 'instance') {
+        instanceFilterArea.classList.remove('hidden');
+        businessFilterArea.classList.add('hidden');
+      } else {
+        instanceFilterArea.classList.add('hidden');
+        businessFilterArea.classList.remove('hidden');
+        const domainId = getCurrentDomainId();
+        if (domainId) fetchBusinesses(domainId);
+      }
+      loadData();
+    });
+  });
+
+  // Business Selection Change
+  businessSelect.addEventListener('change', () => {
+    loadData();
+  });
+
   // Bind metric toggle buttons
   document.querySelectorAll('.metric-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -104,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const overallLayer = document.getElementById('overallDetailLayer');
       const dayHourLayer = document.getElementById('dayHourDetailLayer');
       if ((overallLayer && overallLayer.classList.contains('open')) ||
-          (dayHourLayer && dayHourLayer.classList.contains('open'))) {
+        (dayHourLayer && dayHourLayer.classList.contains('open'))) {
         return;
       }
 
@@ -516,7 +548,7 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
 
 async function loadInstances(domainId) {
   if (!domainId) {
-    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
+    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
     return;
   }
 
@@ -545,7 +577,7 @@ async function loadInstances(domainId) {
     instances.sort((a, b) => a.instanceId - b.instanceId);
 
     // Clear and populate select box
-    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
+    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
     instances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -561,13 +593,54 @@ async function loadInstances(domainId) {
       { instanceId: '2', name: `Instance-${domainId}-2` }
     ];
 
-    instanceSelect.innerHTML = '<option value="">ドメイン全体</option>';
+    instanceSelect.innerHTML = '<option value="">인스턴스 전체</option>';
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
       option.textContent = instance.name;
       instanceSelect.appendChild(option);
     });
+  }
+
+  // Also load businesses for this domain
+  fetchBusinesses(domainId);
+}
+
+async function fetchBusinesses(domainId) {
+  if (!domainId) return;
+
+  const url = new URL(BUSINESS_API_BASE, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  url.searchParams.append('domain_id', domainId);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+    const data = await response.json();
+    let businesses = data.result || [];
+
+    // Clear and populate business select box
+    businessSelect.innerHTML = '<option value="">全体ビジネス</option>';
+
+    businesses.forEach(biz => {
+      const option = document.createElement('option');
+      option.value = biz.businessId;
+
+      // Indentation based on businessIndex (e.g. "0.0" -> 1 level)
+      const dotCount = (biz.businessIndex.match(/\./g) || []).length;
+      const indent = '\u00A0\u00A0'.repeat(dotCount); // 2 spaces per level
+
+      option.textContent = indent + biz.name;
+      businessSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error(`Failed to load businesses for domain ${domainId}`, error);
+    businessSelect.innerHTML = '<option value="">全体ビジネス</option>';
   }
 }
 
@@ -584,7 +657,12 @@ async function loadData() {
     return;
   }
 
+  // Get target type and ID
+  const targetType = document.querySelector('input[name="targetType"]:checked')?.value || 'instance';
   const instanceId = instanceSelect.value;
+  const businessId = businessSelect.value;
+
+  const targetId = targetType === 'instance' ? instanceId : businessId;
 
 
   // Reset thresholds when a new primary search is performed
@@ -607,7 +685,7 @@ async function loadData() {
 
       metricsToFetch.forEach(m => {
         fetchPromisesMap[m].push(
-          fetchMetricData(domainId, instanceId, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, m)
+          fetchMetricData(domainId, targetId, targetType, formatDateParam(monthStart), formatDateParam(monthEnd), 1440, m)
             .catch(err => {
               console.warn(`Failed to fetch partially for ${formatDateParam(monthStart)} metric ${m}`, err);
               return [];
@@ -684,19 +762,31 @@ async function loadData() {
   }
 }
 
-async function fetchMetricData(domainId, instanceId, startTime, endTime, intervalMinute, metrics) {
+async function fetchMetricData(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics) {
   if (!domainId) {
     console.error('fetchMetricData called without domainId');
     return [];
   }
-  const endpoint = instanceId ? `${API_BASE}/instance` : `${API_BASE}/domain`;
+
+  let endpoint;
+  if (!targetId) {
+    endpoint = `${API_BASE}/domain`;
+  } else {
+    endpoint = targetType === 'instance' ? `${API_BASE}/instance` : BUSINESS_METRICS_API_BASE;
+  }
+
   const url = new URL(endpoint, window.location.origin);
 
   // Construct params
   url.searchParams.append('token', TOKEN);
   url.searchParams.append('domain_id', domainId);
-  if (instanceId) {
-    url.searchParams.append('instance_id', instanceId);
+
+  if (targetId) {
+    if (targetType === 'instance') {
+      url.searchParams.append('instance_id', targetId);
+    } else {
+      url.searchParams.append('business_id', targetId);
+    }
   }
   url.searchParams.append('time_pattern', 'yyyyMMddHH');
   url.searchParams.append('start_time', startTime);
@@ -1351,7 +1441,9 @@ async function handleChartSelectionChanged() {
   const rangeDisplay = document.getElementById('selectedRangeDisplay');
   const metrics = currentMetric;
   const domainId = getCurrentDomainId();
-  const instanceId = instanceSelect.value;
+
+  const targetType = document.querySelector('input[name="targetType"]:checked')?.value || 'instance';
+  const targetId = targetType === 'instance' ? instanceSelect.value : businessSelect.value;
 
   const currentMetricData = yearlyData[currentMetric] || [];
   let startIdx = -1;
@@ -1386,7 +1478,7 @@ async function handleChartSelectionChanged() {
       const exactStartDate = new Date(sYear, sMonth, sDay);
       const exactEndDate = new Date(eYear, eMonth, eDay);
 
-      await reloadHeatmaps(domainId, instanceId, exactStartDate, exactEndDate);
+      await reloadHeatmaps(domainId, targetId, targetType, exactStartDate, exactEndDate);
     }
     return;
   }
@@ -1455,11 +1547,11 @@ async function handleChartSelectionChanged() {
     const exactStartDate = new Date(sYear, sMonth, sDay);
     const exactEndDate = new Date(eYear, eMonth, eDay);
 
-    await reloadHeatmaps(domainId, instanceId, exactStartDate, exactEndDate);
+    await reloadHeatmaps(domainId, targetId, targetType, exactStartDate, exactEndDate);
   }
 }
 
-async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
+async function reloadHeatmaps(domainId, targetId, targetType, startDate, endDate) {
   try {
     const fetchEndDate = new Date(endDate);
     fetchEndDate.setDate(fetchEndDate.getDate() + 1);
@@ -1483,17 +1575,17 @@ async function reloadHeatmaps(domainId, instanceId, startDate, endDate) {
       const isErrRateSelected = (currentMetric === 'err_rate');
 
       timePromises.push(
-        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, (isHitSelected || isErrRateSelected) ? 'service_time' : currentMetric)
+        fetchMetricData(domainId, targetId, targetType, chunkStartStr, chunkEndStr, 60, (isHitSelected || isErrRateSelected) ? 'service_time' : currentMetric)
           .catch(err => { console.warn(`Heatmap primary chunk failed`, err); return []; })
       );
       countPromises.push(
-        fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_count')
+        fetchMetricData(domainId, targetId, targetType, chunkStartStr, chunkEndStr, 60, 'service_count')
           .catch(err => { console.warn("Heatmap service_count chunk failed", err); return []; })
       );
 
       if (currentMetric === 'err_rate') {
         errCountPromises.push(
-          fetchMetricData(domainId, instanceId, chunkStartStr, chunkEndStr, 60, 'service_err_count')
+          fetchMetricData(domainId, targetId, targetType, chunkStartStr, chunkEndStr, 60, 'service_err_count')
             .catch(err => { console.warn("Heatmap service_err_count chunk failed", err); return []; })
         );
       }
@@ -1726,7 +1818,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   });
 }
 
-window.showDayHourListLayer = function(binData, metric, isHitSelected) {
+window.showDayHourListLayer = function (binData, metric, isHitSelected) {
   const layer = document.getElementById('dayHourDetailLayer');
   if (!layer) return;
 
@@ -1747,9 +1839,9 @@ window.showDayHourListLayer = function(binData, metric, isHitSelected) {
   const maxVal = d3.max(sortedData, d => (d.yValue !== undefined ? d.yValue : d.value)) || 1;
 
   tbody.innerHTML = '';
-  
+
   const formatVal = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  
+
   sortedData.forEach((item, index) => {
     const timeStr = String(item.time);
     const yyyy = timeStr.substring(0, 4);
@@ -1760,7 +1852,7 @@ window.showDayHourListLayer = function(binData, metric, isHitSelected) {
     const value = item.yValue !== undefined ? item.yValue : item.value;
     const metricFormatted = `${formatVal(value)}${unit}`;
     const barWidthPercent = (value / maxVal) * 100;
-    
+
     // Horizontal Bar with value
     const barHtml = `
       <div class="value-bar-wrapper">
@@ -1777,7 +1869,7 @@ window.showDayHourListLayer = function(binData, metric, isHitSelected) {
       <td>${dateFormatted}</td>
       <td>${barHtml}</td>
     `;
-    
+
     tbody.appendChild(tr);
   });
 };

@@ -82,7 +82,7 @@ body {
   /* Gap between domain box and instance label */
   min-width: unset;
   max-width: 400px;
-  flex: 1 0 auto;
+  flex: 0 0 auto;
 }
 
 .filter-group label {
@@ -93,9 +93,43 @@ body {
   white-space: nowrap;
 }
 
+.hidden {
+  display: none !important;
+}
+
+.toggle-group {
+  display: flex;
+  background: var(--bg-secondary);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-group input[type="radio"] {
+  display: none;
+}
+
+.toggle-group label {
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0 !important;
+}
+
+.toggle-group input[type="radio"]:checked+label {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
 .form-select {
-  width: 100%;
-  padding: 0.6rem 0.75rem;
+  width: auto;
+  min-width: 150px;
+  padding: 5px 5px;
   font-size: 0.85rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -1084,12 +1118,14 @@ body {
 
 .value-bar-container {
   flex: 1;
-  height: 8px; /* slim bar */
+  height: 8px;
+  /* slim bar */
   background-color: transparent;
   border-radius: 2px;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* right-aligned to grow towards the left? No, user example shows left aligned: --- 3231ms */
+  justify-content: flex-end;
+  /* right-aligned to grow towards the left? No, user example shows left aligned: --- 3231ms */
 }
 
 /* User's example: 2025.05.01  ---    3231ms */
