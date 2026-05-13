@@ -1,13 +1,15 @@
 import Chart from 'chart.js/auto';
-import { config } from './config.js';
+
+// Runtime configuration (pta/config.js에서 window.PTA_CONFIG로 로드)
+const PTA_CFG = window.PTA_CONFIG || {};
 
 // Global variables
-const API_BASE = (config.API_DOMAIN || '') + '/api/dbmetrics';
-const BUSINESS_METRICS_API_BASE = (config.API_DOMAIN || '') + '/api/dbmetrics/business';
-const DOMAIN_API_BASE = (config.API_DOMAIN || '') + '/api/domain';
-const INSTANCE_API_BASE = (config.API_DOMAIN || '') + '/api/instance';
-const BUSINESS_API_BASE = (config.API_DOMAIN || '') + '/api/business';
-const TOKEN = config.TOKEN;
+const API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics';
+const BUSINESS_METRICS_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics/business';
+const DOMAIN_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/domain';
+const INSTANCE_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/instance';
+const BUSINESS_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/business';
+const TOKEN = PTA_CFG.TOKEN || '';
 
 const MONTH_COLORS = [
   '#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#34d399',
@@ -90,11 +92,11 @@ Chart.defaults.plugins.tooltip.cornerRadius = 4;
 document.addEventListener('DOMContentLoaded', async () => {
   // Validate configuration
   const missingVars = [];
-  if (!TOKEN) missingVars.push('VITE_API_TOKEN');
-  if (!config.BASE_URL) missingVars.push('VITE_API_BASE_URL');
+  if (!TOKEN) missingVars.push('TOKEN');
+  if (!PTA_CFG.BASE_URL) missingVars.push('BASE_URL');
 
   if (missingVars.length > 0) {
-    showConfigError(`${missingVars.join(' and ')} is not defined in .env file.`);
+    showConfigError(`${missingVars.join(' and ')} is not defined in pta/config.js file.`);
     return;
   }
 
