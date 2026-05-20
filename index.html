@@ -49,6 +49,29 @@
         .hero {
             text-align: left;
             padding: 1rem 0 0.5rem;
+            position: relative;
+        }
+
+        /* Language Switcher */
+        .lang-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 0;
+            padding: 0.4rem 0.7rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .lang-switcher option {
+            background-color: #0b0f19;
+            color: var(--text-primary);
         }
 
         .sub-catch {
@@ -302,18 +325,23 @@
     <div class="container">
         <!-- Hero Section -->
         <header class="hero">
-            <span class="sub-catch">JENNIFERのデータを、もっと自由に使いこなす。</span>
+            <select id="langSelect" class="lang-switcher" aria-label="Language">
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="en">English</option>
+            </select>
+            <span class="sub-catch" data-i18n="landing.subCatch">JENNIFERのデータを、もっと自由に使いこなす。</span>
             <h1 class="main-catch">JENNIFER Extension Labo</h1>
         </header>
 
         <!-- Intro Section (Compact) -->
         <section class="intro-box">
             <div class="intro-text">
-                <p>
+                <p data-i18n-html="landing.intro1">
                     <strong>JENNIFER Extension Labo</strong>
                     は、APMツール「JENNIFER」が収集したパフォーマンスデータをOpenAPIを通じて活用する、プロトタイプ機能・画面を試せる実験スペースです。
                 </p>
-                <p>
+                <p data-i18n-html="landing.intro2">
                     JENNIFERが持つ豊富な性能データを、標準機能の枠を超えてどう使えるか ― アイデアを実際の画面として形にし、ユーザーが直接体験・評価できる場を提供します。
                     ここはユーザーと開発チームが一緒にJENNIFERの未来を作る、共同実験室です。
                 </p>
@@ -342,15 +370,15 @@
         -->
 
         <!-- Lab Modules (Main Focus) -->
-        <div class="section-title">現在進行中の実験</div>
+        <div class="section-title" data-i18n="landing.sectionTitle">現在進行中の実験</div>
         <main class="card-grid">
             <!-- PTA Card -->
             <article class="card">
                 <div class="card-content">
                     <span class="card-icon">📊</span>
-                    <h2>性能トレンド分析</h2>
-                    <p>システムの長期的な性能推移を分析し、時間帯別/曜日別のパターンを可視化。最適なキャパシティプランニングを支援します。</p>
-                    <a href="pta/" class="btn">実験を開始する</a>
+                    <h2 data-i18n="landing.ptaTitle">性能トレンド分析</h2>
+                    <p data-i18n="landing.ptaDesc">システムの長期的な性能推移を分析し、時間帯別/曜日別のパターンを可視化。最適なキャパシティプランニングを支援します。</p>
+                    <a href="pta/" class="btn" data-i18n="landing.ptaBtn">実験を開始する</a>
                 </div>
             </article>
 
@@ -358,8 +386,8 @@
             <article class="card disabled">
                 <div class="card-content">
                     <span class="card-icon" style="filter: grayscale(1);">🚀</span>
-                    <h2>新しい分析画面</h2>
-                    <p>OpenAPIを活用した新しいデータ可視化のアイデアを準備中です。近日公開予定です。</p>
+                    <h2 data-i18n="landing.soonTitle">新しい分析画面</h2>
+                    <p data-i18n="landing.soonDesc">OpenAPIを活用した新しいデータ可視化のアイデアを準備中です。近日公開予定です。</p>
                     <div class="tag">Coming Soon</div>
                 </div>
             </article>
@@ -369,7 +397,7 @@
     <!-- Footer -->
     <footer>
         <div class="footer-content">
-            <p>
+            <p data-i18n-html="landing.footer1">
                 <strong>JENNIFER Expansion Labo</strong> は、株式会社JenniferSoftが運営するプロトタイプサイトです。<br>
                 ここで公開されるすべての機能はプロトタイプであり、将来的なサービスへの搭載を保証するものではありません。
             </p>
@@ -378,6 +406,8 @@
             </p>
         </div>
     </footer>
+
+    <script type="module" src="./src/i18n.js"></script>
 </body>
 
 </html>

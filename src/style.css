@@ -183,7 +183,14 @@ body {
   padding-right: 0.5rem;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
+}
+
+.lang-select {
+  min-width: auto;
+  padding: 5px 8px;
+  cursor: pointer;
 }
 
 /* Summary Cards */

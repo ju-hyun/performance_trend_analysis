@@ -1,7 +1,13 @@
 import Chart from 'chart.js/auto';
+import { t } from './i18n.js';
 
 // Runtime configuration (pta/config.js에서 window.PTA_CONFIG로 로드)
 const PTA_CFG = window.PTA_CONFIG || {};
+
+// Localized display name for a metric key (service_time, service_rate, ...)
+function getMetricLabel(metric) {
+  return t('metric.' + metric);
+}
 
 // Global variables
 const API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics';
@@ -149,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const metricData = yearlyData[currentMetric];
       if (metricData && metricData.length > 0) {
-        const metricDisplayName = targetBtn.textContent;
+        const metricDisplayName = getMetricLabel(currentMetric);
         updateChart('mainChart', metricDisplayName, metricData, '#22c55e', mainChartInstance, (instance) => {
           mainChartInstance = instance;
         });
@@ -189,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const metricData = yearlyData[currentMetric];
       if (metricData && metricData.length > 0) {
-        const metricDisplayName = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`).textContent;
+        const metricDisplayName = getMetricLabel(currentMetric);
         updateChart('mainChart', metricDisplayName, metricData, '#22c55e', mainChartInstance, (instance) => {
           mainChartInstance = instance;
         });
@@ -357,7 +363,7 @@ function buildDomainTree(flatDomains) {
 
   flatDomains.forEach(domain => {
     let currentLevel = tree;
-    const hierarchy = domain.groupHierarchy || ['未分類ドメイン'];
+    const hierarchy = domain.groupHierarchy || [t('domain.uncategorized')];
 
     hierarchy.forEach((groupName, index) => {
       let group = currentLevel.find(item => item.name === groupName && item.type === 'group');
@@ -550,7 +556,7 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
 
 async function loadInstances(domainId) {
   if (!domainId) {
-    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
+    instanceSelect.innerHTML = `<option value="">${t('select.allInstances')}</option>`;
     return;
   }
 
@@ -579,7 +585,7 @@ async function loadInstances(domainId) {
     instances.sort((a, b) => a.instanceId - b.instanceId);
 
     // Clear and populate select box
-    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
+    instanceSelect.innerHTML = `<option value="">${t('select.allInstances')}</option>`;
     instances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -595,7 +601,7 @@ async function loadInstances(domainId) {
       { instanceId: '2', name: `Instance-${domainId}-2` }
     ];
 
-    instanceSelect.innerHTML = '<option value="">인스턴스 전체</option>';
+    instanceSelect.innerHTML = `<option value="">${t('select.allInstances')}</option>`;
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -627,7 +633,7 @@ async function fetchBusinesses(domainId) {
     let businesses = data.result || [];
 
     // Clear and populate business select box
-    businessSelect.innerHTML = '<option value="">全体ビジネス</option>';
+    businessSelect.innerHTML = `<option value="">${t('select.allBusinesses')}</option>`;
 
     businesses.forEach(biz => {
       const option = document.createElement('option');
@@ -642,7 +648,7 @@ async function fetchBusinesses(domainId) {
     });
   } catch (error) {
     console.error(`Failed to load businesses for domain ${domainId}`, error);
-    businessSelect.innerHTML = '<option value="">全体ビジネス</option>';
+    businessSelect.innerHTML = `<option value="">${t('select.allBusinesses')}</option>`;
   }
 }
 
@@ -734,8 +740,7 @@ async function loadData() {
     });
 
     // Update UI Elements for Chart
-    const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
-    const metricDisplayName = activeBtn ? activeBtn.textContent : '応答時間';
+    const metricDisplayName = getMetricLabel(currentMetric);
 
     // Update main chart
     updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
@@ -746,7 +751,7 @@ async function loadData() {
     selectedStartMonth = null;
     selectedEndMonth = null;
     const rangeDisplay = document.getElementById('selectedRangeDisplay');
-    if (rangeDisplay) rangeDisplay.textContent = '全体 (1年)';
+    if (rangeDisplay) rangeDisplay.textContent = t('range.full');
 
     // Update Summary Cards
     const curData = yearlyData[currentMetric] || [];
@@ -1105,13 +1110,13 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
   // Handle System CPU dual line (Avg + Max) - Force combo chart for visibility
   if (currentMetric === 'sys_cpu' && yearlyData['max_sys_cpu'].length > 0) {
     // 1. Re-adjust Primary (Avg) style for CPU
-    primaryDataset.label = '平均CPU';
+    primaryDataset.label = t('cpu.avg');
     primaryDataset.order = 2; // Behind max line
 
     // 2. Add Max CPU as a forced Line
     const maxCpuData = yearlyData['max_sys_cpu'].map(item => item.value);
     const maxDataset = {
-      label: '最大CPU',
+      label: t('cpu.max'),
       type: 'line', // Always line
       data: maxCpuData,
       borderWidth: 2,
@@ -1130,7 +1135,8 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     const ma30Data = calculateSMA(values, 30);
 
     datasets.push({
-      label: '7日移動平均',
+      label: t('ma7'),
+      isMA: true,
       type: 'line',
       data: ma7Data,
       borderColor: '#ff4d00', // More vibrant orange-red for better visibility
@@ -1144,7 +1150,8 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
     });
 
     datasets.push({
-      label: '30日移動平均',
+      label: t('ma30'),
+      isMA: true,
       type: 'line',
       data: ma30Data,
       borderColor: '#682cf3ff', // Violet
@@ -1198,9 +1205,9 @@ function updateChart(canvasId, label, data, color, chartInstance, setInstanceCal
               padding: 10,
               font: { size: 10 },
               usePointStyle: true,
-              filter: function (item, chart) {
-                // Filter out the primary metric and Max CPU from the legend
-                return item.text.includes('移動平均');
+              filter: function (item, chartData) {
+                // Show only the moving-average datasets in the legend
+                return chartData.datasets[item.datasetIndex]?.isMA === true;
               }
             }
           },
@@ -1402,10 +1409,8 @@ function updateChartStatsGrid(labels, chart) {
     avgItem.style.left = `${xOffset}px`;
 
     let avgText;
-    const metricLabel = currentMetricLabelCache || '';
-    if (metricLabel.includes('応答時間') || metricLabel.includes('Response Time')) {
-      avgText = Math.round(d.avg).toLocaleString();
-    } else if (metricLabel.includes('TPS')) {
+    if (currentMetric === 'service_rate') {
+      // TPS: keep 2 decimal places
       avgText = d.avg.toFixed(2);
     } else {
       avgText = Math.round(d.avg).toLocaleString();
@@ -1452,7 +1457,7 @@ async function handleChartSelectionChanged() {
   let endIdx = -1;
 
   if (!selectedStartMonth || !selectedEndMonth) {
-    rangeDisplay.textContent = '全体 (1年)';
+    rangeDisplay.textContent = t('range.full');
     // Reset to full data
     updateSummaryCardsPartial(0, currentMetricData.length - 1);
 
@@ -1647,7 +1652,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   if (!container) return;
 
   if (!data || data.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">데이터가 없습니다.</div>';
+    container.innerHTML = `<div class="heatmap-placeholder">${t('heatmap.noData')}</div>`;
     return;
   }
 
@@ -1743,13 +1748,13 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
     const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
     if (allAverages.length > 0) {
       const formatThreshold = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      legendGoodText.innerHTML = `安定 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
-      legendWarningText.innerHTML = `警戒 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
-      legendDangerText.innerHTML = `高 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendGoodText.innerHTML = `${t('legend.good')} <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
+      legendWarningText.innerHTML = `${t('legend.warning')} <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `${t('legend.danger')} <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
     } else {
-      legendGoodText.textContent = '安定';
-      legendWarningText.textContent = '警戒';
-      legendDangerText.textContent = '高';
+      legendGoodText.textContent = t('legend.good');
+      legendWarningText.textContent = t('legend.warning');
+      legendDangerText.textContent = t('legend.danger');
     }
   }
 
@@ -1787,7 +1792,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
 
       const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
       const formattedAvg = avg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${formattedAvg}${unit}` : 'No data';
+      const tooltipText = cell.count > 0 ? `${day} ${h}:00<br/>Avg: ${formattedAvg}${unit}` : t('heatmap.noDataShort');
       html += `<td style="background-color: ${bgColor}; cursor: ${cell.count > 0 ? 'pointer' : 'default'};" 
                 class="dayhour-cell"
                 data-day="${dIdx}"
@@ -1831,7 +1836,7 @@ window.showDayHourListLayer = function (binData, metric, isHitSelected) {
 
   // Set Metric Header Unit
   const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-  const labelName = document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || 'Value';
+  const labelName = getMetricLabel(metric);
   metricHeader.textContent = `${labelName}`; // Kept short, unit included in text
 
   // Sort chronologically
@@ -1881,14 +1886,14 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   if (!container) return;
 
   if (!data || data.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">有効なデータがありません。</div>';
+    container.innerHTML = `<div class="heatmap-placeholder">${t('heatmap.noValidData')}</div>`;
     return;
   }
 
   // 1. Filter data: only items with count > 0 to find meaningful distributions
   const validData = data.filter(d => d.count > 0);
   if (validData.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">有効なデータがありません。</div>';
+    container.innerHTML = `<div class="heatmap-placeholder">${t('heatmap.noValidData')}</div>`;
     return;
   }
 
@@ -2004,7 +2009,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
       const countRange = minCount === maxCount ? formatVal(minCount) : `${formatVal(minCount)} ~ ${formatVal(maxCount)}`;
 
       const unit = isHitSelected ? 'Hits' : getMetricUnit(metric);
-      const labelName = document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || 'Value';
+      const labelName = getMetricLabel(metric);
       const tooltipText = `Hits: ${countRange}<br/>${labelName}: ${timeRange} ${unit}<br/>Points: ${d.length}`;
       showHeatmapTooltip(event, tooltipText);
     })
@@ -2058,7 +2063,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
   // Update Footer Label (External to SVG)
   const labelY = document.getElementById('overallHeatmapLabelY');
   if (labelY) {
-    const metricDisplayName = isHitSelected ? '応答時間' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
+    const metricDisplayName = isHitSelected ? getMetricLabel('service_time') : getMetricLabel(metric);
     labelY.textContent = `${metricDisplayName} (${unit})`;
   }
 }
@@ -2176,7 +2181,7 @@ function getMetricUnit(metric) {
   switch (metric) {
     case 'service_time': return 'ms';
     case 'service_rate': return 'TPS';
-    case 'concurrent_user': return '人';
+    case 'concurrent_user': return t('unit.users');
     case 'service_count': return 'Hits';
     case 'sys_cpu':
     case 'max_sys_cpu':
@@ -2321,8 +2326,7 @@ function mockDataOnFailPartial() {
   yearlyData['heap_usage'] = mockDates.map(d => ({ time: d, value: 30 + Math.random() * 40 }));
 
   // Update main chart
-  const activeBtn = document.querySelector(`.metric-btn[data-metric="${currentMetric}"]`);
-  const metricDisplayName = activeBtn ? activeBtn.textContent : '応答時間';
+  const metricDisplayName = getMetricLabel(currentMetric);
 
   updateChart('mainChart', metricDisplayName, yearlyData[currentMetric], '#22c55e', mainChartInstance, (instance) => {
     mainChartInstance = instance;
@@ -2381,7 +2385,7 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
   if (!layer || !tbody || !metricHeader) return;
 
   const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-  const metricDisplayName = isHitSelected ? '응답시간' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
+  const metricDisplayName = isHitSelected ? getMetricLabel('service_time') : getMetricLabel(metric);
   metricHeader.textContent = `${metricDisplayName}(${unit})`;
 
   // Sort data points by time ascending
@@ -2401,7 +2405,7 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
     // Default format requested: date(yyyy.MM.dd) and time(HH)
     const dateFormatted = `${yyyy}.${MM}.${dd}`;
     const timeFormatted = `${HH}`;
-    const hitsFormatted = `${item.count}件`;
+    const hitsFormatted = `${item.count}${t('unit.hits')}`;
     const metricFormatted = `${formatVal(item.yValue)}${unit}`;
 
     const tr = document.createElement('tr');

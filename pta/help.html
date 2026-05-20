@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="./config.js"></script>
-  <title>性能トレンド分析 - ヘルプ</title>
+  <title data-i18n="help.title">性能トレンド分析 - ヘルプ</title>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
     rel="stylesheet">
   <style>
@@ -137,6 +137,23 @@
       background: #cbd5e1;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .help-lang-select {
+      padding: 0.4rem 0.7rem;
+      font-size: 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
     footer {
       margin-top: 4rem;
       text-align: center;
@@ -170,191 +187,199 @@
 <body>
   <div class="container">
     <header>
-      <h1>性能トレンド分析 ガイド</h1>
-      <button onclick="window.close()" class="close-btn">閉じる</button>
+      <h1 data-i18n="help.headerTitle">性能トレンド分析 ガイド</h1>
+      <div class="header-actions">
+        <select id="langSelect" class="help-lang-select" aria-label="Language">
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+        </select>
+        <button onclick="window.close()" class="close-btn" data-i18n="help.closeBtn">閉じる</button>
+      </div>
     </header>
 
     <section id="general">
-      <h2>1. 概要</h2>
-      <p>
+      <h2 data-i18n="help.general.h2">1. 概要</h2>
+      <p data-i18n="help.general.p1">
         性能トレンド分析ダッシュボードは、ウェブアプリケーションの長期的な性能推移を可視化し、システムの状態を多角的に分析するためのツールです。1年間のデータを1時間単位の精度で保持し、トレンドの把握やキャパシティプランニングに活用できます。
       </p>
     </section>
 
     <section id="main-chart">
-      <h2>2. メイン時系列チャート</h2>
-      <p>
+      <h2 data-i18n="help.mainChart.h2">2. メイン時系列チャート</h2>
+      <p data-i18n="help.mainChart.p1">
         アプリケーション上部に配置されたメインチャートは、選択したメトリクスの時間経過に伴う変化を確認するための主要な指標です。
         1年間のデータを1日単位の精度で保持し、トレンドの把握やキャパシティプランニングに活用できます。
       </p>
 
-      <h3>2.1 各指標（メトリクス）の定義</h3>
+      <h3 data-i18n="help.mainChart.h3_1">2.1 各指標（メトリクス）の定義</h3>
       <ul>
-        <li><span class="metric-tag">応答時間</span> <strong>Response Time (ms):</strong>
+        <li data-i18n-html="help.mainChart.metric.responseTime"><span class="metric-tag">応答時間</span> <strong>Response Time (ms):</strong>
           リクエストの処理完了までにかかった平均時間。ユーザー体験に直結する重要な指標です。</li>
-        <li><span class="metric-tag">TPS</span> <strong>Transactions Per Second:</strong>
+        <li data-i18n-html="help.mainChart.metric.tps"><span class="metric-tag">TPS</span> <strong>Transactions Per Second:</strong>
           1秒あたりの平均処理件数。システムの現在のスループットを示します。</li>
-        <li><span class="metric-tag">Hit数</span> <strong>Hits (Count):</strong> 特定の時間枠内の総リクエスト数。システムの負荷量（トラフィック）を測定します。
+        <li data-i18n-html="help.mainChart.metric.hits"><span class="metric-tag">Hit数</span> <strong>Hits (Count):</strong> 特定の時間枠内の総リクエスト数。システムの負荷量（トラフィック）を測定します。
         </li>
-        <li><span class="metric-tag">同時ユーザ数</span> <strong>Concurrent Users:</strong> システムにアクティブに接続しているユーザー数。</li>
-        <li><span class="metric-tag">エラー率</span> <strong>Error Rate (%):</strong>
+        <li data-i18n-html="help.mainChart.metric.users"><span class="metric-tag">同時ユーザ数</span> <strong>Concurrent Users:</strong> システムにアクティブに接続しているユーザー数。</li>
+        <li data-i18n-html="help.mainChart.metric.errRate"><span class="metric-tag">エラー率</span> <strong>Error Rate (%):</strong>
           総リクエスト数に対するエラー発生数の割合。計算式: <code>(エラー件数 / 総リクエスト数) × 100</code>。エラー率の上昇は、アプリケーションの不具合やインフラ障害を示す重要なシグナルです。</li>
-        <li><span class="metric-tag">CPU / メモリ</span> インスタンスごとの物理リソース使用率。平均値と最大値(Peak)を同時に分析することで、リソース不足を早期に検知できます。</li>
+        <li data-i18n-html="help.mainChart.metric.cpuMem"><span class="metric-tag">CPU / メモリ</span> インスタンスごとの物理リソース使用率。平均値と最大値(Peak)を同時に分析することで、リソース不足を早期に検知できます。</li>
       </ul>
 
-      <h3>2.2 ダッシュボードの操作方法</h3>
+      <h3 data-i18n="help.mainChart.h3_2">2.2 ダッシュボードの操作方法</h3>
 
       <ul>
-        <li><strong>期間の絞り込み:</strong> メインチャート上の特定の範囲をマウスでドラッグすると、その期間の統計データが全カードとヒートマップに即座に反映されます。
+        <li data-i18n-html="help.mainChart.op.filter"><strong>期間の絞り込み:</strong> メインチャート上の特定の範囲をマウスでドラッグすると、その期間の統計データが全カードとヒートマップに即座に反映されます。
           キーボードの方向キー (←, →) を押すと、選択した1ヶ月の範囲を前後に範囲が拡張されます。</li>
-        <li><strong>範囲の移動:</strong> キーボードの方向キー (←, →) を押すと、選択した1ヶ月の範囲を前後に移動できます。</li>
-        <li><strong>選択解除:</strong> <code>Esc</code> キーを押すと、選択がリセットされ、1年全体のデータに戻ります。</li>
-        <li><strong>移動平均の活用:</strong> 「移動平均」をOnにすると、短期的な変動を抑えた長期的なトレンドが視覚化され、本質的な変化を捉えやすくなります。</li>
+        <li data-i18n-html="help.mainChart.op.move"><strong>範囲の移動:</strong> キーボードの方向キー (←, →) を押すと、選択した1ヶ月の範囲を前後に移動できます。</li>
+        <li data-i18n-html="help.mainChart.op.reset"><strong>選択解除:</strong> <code>Esc</code> キーを押すと、選択がリセットされ、1年全体のデータに戻ります。</li>
+        <li data-i18n-html="help.mainChart.op.ma"><strong>移動平均の活用:</strong> 「移動平均」をOnにすると、短期的な変動を抑えた長期的なトレンドが視覚化され、本質的な変化を捉えやすくなります。</li>
       </ul>
 
-      <h3>2.3 なぜこのチャートが重要か？</h3>
+      <h3 data-i18n="help.mainChart.h3_3">2.3 なぜこのチャートが重要か？</h3>
       <div class="guide-box">
         <ul>
-          <li><strong>長期トレンドの可視化:</strong>
+          <li data-i18n-html="help.mainChart.why.trend"><strong>長期トレンドの可視化:</strong>
             1年分のデータを1日単位で表示することで、月次・四半期ごとの性能推移や季節性のあるトラフィック変動を把握できます。一時的なスパイクと構造的な劣化を明確に区別できます。</li>
-          <li><strong>キャパシティプランニング:</strong> 過去の推移から将来のリソース需要を予測し、「いつ頃インフラ増設が必要か」を定量的に判断する根拠となります。</li>
-          <li><strong>変更影響の検証:</strong> デプロイやインフラ変更の前後で性能がどのように変化したかを時系列で確認でき、変更の効果やリグレッションを即座に検知できます。</li>
+          <li data-i18n-html="help.mainChart.why.capacity"><strong>キャパシティプランニング:</strong> 過去の推移から将来のリソース需要を予測し、「いつ頃インフラ増設が必要か」を定量的に判断する根拠となります。</li>
+          <li data-i18n-html="help.mainChart.why.change"><strong>変更影響の検証:</strong> デプロイやインフラ変更の前後で性能がどのように変化したかを時系列で確認でき、変更の効果やリグレッションを即座に検知できます。</li>
         </ul>
       </div>
 
-      <h3>2.4 移動平均線の活用方法</h3>
-      <p>移動平均(MA)は日次の変動ノイズを除去し、本質的なトレンドを浮き彫りにします。本ツールでは <strong>7日移動平均</strong> と <strong>30日移動平均</strong> の2種類を提供しています。
+      <h3 data-i18n="help.mainChart.h3_4">2.4 移動平均線の活用方法</h3>
+      <p data-i18n-html="help.mainChart.ma.intro">移動平均(MA)は日次の変動ノイズを除去し、本質的なトレンドを浮き彫りにします。本ツールでは <strong>7日移動平均</strong> と <strong>30日移動平均</strong> の2種類を提供しています。
       </p>
       <div class="guide-box">
-        <h4>▶ 7日移動平均 <small style="color:#64748b;">（短期トレンド）</small></h4>
+        <h4 data-i18n-html="help.mainChart.ma7.h4">▶ 7日移動平均 <small style="color:#64748b;">（短期トレンド）</small></h4>
         <ul>
-          <li>週単位の傾向変化を素早く検出できます。</li>
-          <li>デプロイ後の性能変化を数日以内に確認する際に有効です。</li>
+          <li data-i18n="help.mainChart.ma7.li1">週単位の傾向変化を素早く検出できます。</li>
+          <li data-i18n="help.mainChart.ma7.li2">デプロイ後の性能変化を数日以内に確認する際に有効です。</li>
         </ul>
       </div>
       <div class="guide-box" style="margin-top: 0.75rem;">
-        <h4>▶ 30日移動平均 <small style="color:#64748b;">（長期トレンド）</small></h4>
+        <h4 data-i18n-html="help.mainChart.ma30.h4">▶ 30日移動平均 <small style="color:#64748b;">（長期トレンド）</small></h4>
         <ul>
-          <li>月単位の構造的なトレンドを把握できます。</li>
-          <li>30日線が持続的に上昇（応答時間・エラー率の場合）している場合、スケーリングやチューニングの検討が必要です。</li>
+          <li data-i18n="help.mainChart.ma30.li1">月単位の構造的なトレンドを把握できます。</li>
+          <li data-i18n="help.mainChart.ma30.li2">30日線が持続的に上昇（応答時間・エラー率の場合）している場合、スケーリングやチューニングの検討が必要です。</li>
         </ul>
       </div>
       <div class="guide-box" style="margin-top: 0.75rem;">
-        <h4>▶ 分析のポイント</h4>
+        <h4 data-i18n="help.mainChart.maPoint.h4">▶ 分析のポイント</h4>
         <ul>
-          <li><strong>7日線と30日線の乖離:</strong> 7日線が30日線を上回り始めたら直近の性能悪化の兆候、下回り始めたら改善の兆候です。</li>
-          <li><strong>ゴールデンクロス / デッドクロス:</strong> 短期線が長期線を下から上に突き抜けた場合（応答時間等では悪化シグナル）、逆に上から下に抜けた場合は改善シグナルとして読み取れます。</li>
-          <li><strong>原データとの差:</strong> 原データが移動平均線から大きく乖離した日は、一時的なイベントや障害を示す外れ値である可能性が高いです。</li>
+          <li data-i18n-html="help.mainChart.maPoint.li1"><strong>7日線と30日線の乖離:</strong> 7日線が30日線を上回り始めたら直近の性能悪化の兆候、下回り始めたら改善の兆候です。</li>
+          <li data-i18n-html="help.mainChart.maPoint.li2"><strong>ゴールデンクロス / デッドクロス:</strong> 短期線が長期線を下から上に突き抜けた場合（応答時間等では悪化シグナル）、逆に上から下に抜けた場合は改善シグナルとして読み取れます。</li>
+          <li data-i18n-html="help.mainChart.maPoint.li3"><strong>原データとの差:</strong> 原データが移動平均線から大きく乖離した日は、一時的なイベントや障害を示す外れ値である可能性が高いです。</li>
         </ul>
       </div>
 
     </section>
 
     <section id="overall">
-      <h2>3. Overall ヒットマップ分析 (相関分析)</h2>
-      <p>このチャートは、<strong>負荷(Hits)</strong>と<strong>性能指標</strong>の相関を示します。データは中央値(Median)によって4つのエリアに分類されます。
+      <h2 data-i18n="help.overall.h2">3. Overall ヒットマップ分析 (相関分析)</h2>
+      <p data-i18n-html="help.overall.p1">このチャートは、<strong>負荷(Hits)</strong>と<strong>性能指標</strong>の相関を示します。データは中央値(Median)によって4つのエリアに分類されます。
         性能指標の中央値(Median)は全体期間の中央値(Median)を使用します。Hit数の中央値(Median)は選択した期間の中央値(Median)を使用します。
       </p>
 
       <div class="quadrant-grid">
-        <div class="quadrant">
+        <div class="quadrant" data-i18n-html="help.overall.quad.topLeft">
           <strong>左上: 低負荷 × 高指標値</strong>
           負荷(Hits)が少ないにもかかわらず、Y軸の指標値が高い状態。
         </div>
-        <div class="quadrant">
+        <div class="quadrant" data-i18n-html="help.overall.quad.topRight">
           <strong>右上: 高負荷 × 高指標値</strong>
           負荷(Hits)と Y軸の指標値が共に高い状態。
         </div>
-        <div class="quadrant">
+        <div class="quadrant" data-i18n-html="help.overall.quad.bottomLeft">
           <strong>左下: 低負荷 × 低指標値</strong>
           負荷(Hits)と Y軸の指標値が共に低い状態。
         </div>
-        <div class="quadrant">
+        <div class="quadrant" data-i18n-html="help.overall.quad.bottomRight">
           <strong>右下: 高負荷 × 低指標値</strong>
           負荷(Hits)が高いにもかかわらず、Y軸の指標値が低い状態。
         </div>
       </div>
 
-      <h3>3.1 メトリクス別の解析ガイド</h3>
-      <p>Y軸に表示される指標の種類によって、各エリアの意味が変わります。</p>
+      <h3 data-i18n="help.overall.h3_1">3.1 メトリクス別の解析ガイド</h3>
+      <p data-i18n="help.overall.h3_1.p">Y軸に表示される指標の種類によって、各エリアの意味が変わります。</p>
 
       <div class="guide-box">
-        <h4>▶ 応答時間 / エラー率 / CPU / メモリ <small style="color:#64748b;">（値が高い＝悪化）</small></h4>
+        <h4 data-i18n-html="help.overall.bad.h4">▶ 応答時間 / エラー率 / CPU / メモリ <small style="color:#64748b;">（値が高い＝悪化）</small></h4>
         <ul>
-          <li><strong>左上（⚠️）:</strong> 低負荷でも指標が高い → アプリケーション内部の非効率（遅いクエリ、メモリリーク等）が疑われます。</li>
-          <li><strong>右上（🔴）:</strong> 高負荷で指標も高い → キャパシティの限界。リソースの増設やチューニングが急務です。</li>
-          <li><strong>左下（🟢）:</strong> 低負荷で指標も低い → 安定した理想的な状態です。</li>
-          <li><strong>右下（✅）:</strong> 高負荷でも指標が低い → 高効率。十分なキャパシティがあります。</li>
+          <li data-i18n-html="help.overall.bad.topLeft"><strong>左上（⚠️）:</strong> 低負荷でも指標が高い → アプリケーション内部の非効率（遅いクエリ、メモリリーク等）が疑われます。</li>
+          <li data-i18n-html="help.overall.bad.topRight"><strong>右上（🔴）:</strong> 高負荷で指標も高い → キャパシティの限界。リソースの増設やチューニングが急務です。</li>
+          <li data-i18n-html="help.overall.bad.bottomLeft"><strong>左下（🟢）:</strong> 低負荷で指標も低い → 安定した理想的な状態です。</li>
+          <li data-i18n-html="help.overall.bad.bottomRight"><strong>右下（✅）:</strong> 高負荷でも指標が低い → 高効率。十分なキャパシティがあります。</li>
         </ul>
       </div>
 
       <div class="guide-box" style="margin-top: 0.75rem;">
-        <h4>▶ TPS <small style="color:#64748b;">（値が高い＝良好）</small></h4>
+        <h4 data-i18n-html="help.overall.tps.h4">▶ TPS <small style="color:#64748b;">（値が高い＝良好）</small></h4>
         <ul>
-          <li><strong>左上（✅）:</strong> 低負荷で高スループット → 効率的な処理が行われています。</li>
-          <li><strong>右上（🟢）:</strong> 高負荷で高スループット → 最適なパフォーマンス状態です。</li>
-          <li><strong>左下（⚪）:</strong> 低負荷で低スループット → アイドル状態またはトラフィックが少ない時間帯です。</li>
-          <li><strong>右下（⚠️）:</strong> 高負荷で低スループット → ボトルネックの可能性。処理が追いついていません。</li>
+          <li data-i18n-html="help.overall.tps.topLeft"><strong>左上（✅）:</strong> 低負荷で高スループット → 効率的な処理が行われています。</li>
+          <li data-i18n-html="help.overall.tps.topRight"><strong>右上（🟢）:</strong> 高負荷で高スループット → 最適なパフォーマンス状態です。</li>
+          <li data-i18n-html="help.overall.tps.bottomLeft"><strong>左下（⚪）:</strong> 低負荷で低スループット → アイドル状態またはトラフィックが少ない時間帯です。</li>
+          <li data-i18n-html="help.overall.tps.bottomRight"><strong>右下（⚠️）:</strong> 高負荷で低スループット → ボトルネックの可能性。処理が追いついていません。</li>
         </ul>
       </div>
 
-      <h3>3.2 なぜこのチャートが重要か？</h3>
+      <h3 data-i18n="help.overall.h3_2">3.2 なぜこのチャートが重要か？</h3>
       <div class="guide-box">
         <ul>
-          <li><strong>負荷と性能の因果関係の把握:</strong>
+          <li data-i18n-html="help.overall.why.cause"><strong>負荷と性能の因果関係の把握:</strong>
             時系列チャートだけでは「いつ遅くなったか」は分かりますが、「なぜ遅くなったか」は分かりません。Overallヒートマップは、負荷量との相関を可視化することで原因の切り分けを支援します。</li>
-          <li><strong>キャパシティの限界点の特定:</strong>
+          <li data-i18n-html="help.overall.why.limit"><strong>キャパシティの限界点の特定:</strong>
             データポイントが右上エリアに集中し始めた場合、現在のインフラ構成ではトラフィックの増加に耐えられないことを示しており、事前のスケーリング計画に役立ちます。</li>
-          <li><strong>チューニング効果の検証:</strong> アプリケーションやインフラのチューニング前後でデータ分布がどう変化したかを視覚的に比較できます。</li>
+          <li data-i18n-html="help.overall.why.tuning"><strong>チューニング効果の検証:</strong> アプリケーションやインフラのチューニング前後でデータ分布がどう変化したかを視覚的に比較できます。</li>
         </ul>
       </div>
 
-      <h3>3.3 活用ガイド</h3>
+      <h3 data-i18n="help.overall.h3_3">3.3 活用ガイド</h3>
       <div class="guide-box">
         <ul>
-          <li><strong>分布の偏りを確認:</strong> 左下（安定）に密集していれば健全な状態。右上へ広がるほどキャパシティリスクが高まっています。</li>
-          <li><strong>期間絞り込みとの併用:</strong> メインチャートで特定の月を選択すると、その期間だけの負荷-性能分布を確認でき、月別・季節別の変化を比較分析できます。</li>
-          <li><strong>メトリクス切替による多面的分析:</strong> 同じ期間でメトリクスを切り替えることで、「負荷増加時に応答時間は悪化するがエラー率は安定」など、複合的な性能特性を把握できます。</li>
-          <li><strong>インスタンス別比較:</strong> インスタンスを切り替えて分布パターンを比較することで、特定のサーバーだけに問題が集中していないか確認できます。</li>
+          <li data-i18n-html="help.overall.tip.dist"><strong>分布の偏りを確認:</strong> 左下（安定）に密集していれば健全な状態。右上へ広がるほどキャパシティリスクが高まっています。</li>
+          <li data-i18n-html="help.overall.tip.range"><strong>期間絞り込みとの併用:</strong> メインチャートで特定の月を選択すると、その期間だけの負荷-性能分布を確認でき、月別・季節別の変化を比較分析できます。</li>
+          <li data-i18n-html="help.overall.tip.metric"><strong>メトリクス切替による多面的分析:</strong> 同じ期間でメトリクスを切り替えることで、「負荷増加時に応答時間は悪化するがエラー率は安定」など、複合的な性能特性を把握できます。</li>
+          <li data-i18n-html="help.overall.tip.instance"><strong>インスタンス別比較:</strong> インスタンスを切り替えて分布パターンを比較することで、特定のサーバーだけに問題が集中していないか確認できます。</li>
         </ul>
       </div>
     </section>
 
     <section id="dayhour">
-      <h2>4. 曜日 x 時間帯別 分析 (パターン分析)</h2>
-      <p>曜日と時間帯ごとの平均値をヒートマップで可視化し、システムの稼働パターンを一目で把握できるチャートです。統計的な四分位範囲(IQR)に基づき、自動的にステータスを分類します。</p>
+      <h2 data-i18n="help.dayhour.h2">4. 曜日 x 時間帯別 分析 (パターン分析)</h2>
+      <p data-i18n="help.dayhour.p1">曜日と時間帯ごとの平均値をヒートマップで可視化し、システムの稼働パターンを一目で把握できるチャートです。統計的な四分位範囲(IQR)に基づき、自動的にステータスを分類します。</p>
 
-      <h3>4.1 ステータスの定義</h3>
+      <h3 data-i18n="help.dayhour.h3_1">4.1 ステータスの定義</h3>
       <ul>
-        <li><strong>安定 (Stable):</strong> 過去の統計から見て平均的な動作範囲（Q3以下）。</li>
-        <li><strong>警戒 (Warning):</strong> 通常よりも高い値を示す時間帯（Q3 〜 Q3+1.5×IQR）。注意深い監視が必要です。</li>
-        <li><strong>高 (High):</strong> 明らかなピーク（Q3+1.5×IQR超）。リソースの限界に近い、または異常なアクセス集中が発生している可能性があります。</li>
+        <li data-i18n-html="help.dayhour.status.stable"><strong>安定 (Stable):</strong> 過去の統計から見て平均的な動作範囲（Q3以下）。</li>
+        <li data-i18n-html="help.dayhour.status.warning"><strong>警戒 (Warning):</strong> 通常よりも高い値を示す時間帯（Q3 〜 Q3+1.5×IQR）。注意深い監視が必要です。</li>
+        <li data-i18n-html="help.dayhour.status.high"><strong>高 (High):</strong> 明らかなピーク（Q3+1.5×IQR超）。リソースの限界に近い、または異常なアクセス集中が発生している可能性があります。</li>
       </ul>
 
-      <h3>4.2 なぜこのチャートが重要か？</h3>
+      <h3 data-i18n="help.dayhour.h3_2">4.2 なぜこのチャートが重要か？</h3>
       <div class="guide-box">
         <ul>
-          <li><strong>反復パターンの発見:</strong> 毎週同じ曜日・時間帯に負荷が集中する傾向を把握でき、予測可能な問題に対して事前に対策が立てられます。</li>
-          <li><strong>異常検知の基準:</strong> 普段は安定している時間帯に突然「警戒」や「高」が現れた場合、通常とは異なるアクセスパターンや障害の兆候を素早く察知できます。</li>
-          <li><strong>リソース計画:</strong> ピーク時間帯を正確に把握することで、スケーリングポリシーの設定やメンテナンス作業の最適な時間帯を決定できます。</li>
+          <li data-i18n-html="help.dayhour.why.pattern"><strong>反復パターンの発見:</strong> 毎週同じ曜日・時間帯に負荷が集中する傾向を把握でき、予測可能な問題に対して事前に対策が立てられます。</li>
+          <li data-i18n-html="help.dayhour.why.anomaly"><strong>異常検知の基準:</strong> 普段は安定している時間帯に突然「警戒」や「高」が現れた場合、通常とは異なるアクセスパターンや障害の兆候を素早く察知できます。</li>
+          <li data-i18n-html="help.dayhour.why.resource"><strong>リソース計画:</strong> ピーク時間帯を正確に把握することで、スケーリングポリシーの設定やメンテナンス作業の最適な時間帯を決定できます。</li>
         </ul>
       </div>
 
-      <h3>4.3 活用ガイド</h3>
+      <h3 data-i18n="help.dayhour.h3_3">4.3 活用ガイド</h3>
       <div class="guide-box">
         <ul>
-          <li><strong>定期メンテナンス:</strong> 「安定」が続く時間帯（例：日曜深夜〜月曜早朝）をメンテナンスウィンドウとして選定します。</li>
-          <li><strong>オートスケーリング:</strong> 「警戒」以上が頻出する曜日・時間帯に合わせて、サーバーの自動スケーリングルールを設定します。</li>
-          <li><strong>メトリクス切替による多面的分析:</strong> 応答時間 → エラー率 → CPU の順にメトリクスを切り替えて比較すると、ボトルネックの根本原因を特定しやすくなります。</li>
-          <li><strong>期間絞り込みとの併用:</strong> メインチャートで特定の月を選択すると、季節やイベント期間ごとの曜日パターンの変化を比較分析できます。</li>
+          <li data-i18n-html="help.dayhour.tip.maintenance"><strong>定期メンテナンス:</strong> 「安定」が続く時間帯（例：日曜深夜〜月曜早朝）をメンテナンスウィンドウとして選定します。</li>
+          <li data-i18n-html="help.dayhour.tip.autoscaling"><strong>オートスケーリング:</strong> 「警戒」以上が頻出する曜日・時間帯に合わせて、サーバーの自動スケーリングルールを設定します。</li>
+          <li data-i18n-html="help.dayhour.tip.metric"><strong>メトリクス切替による多面的分析:</strong> 応答時間 → エラー率 → CPU の順にメトリクスを切り替えて比較すると、ボトルネックの根本原因を特定しやすくなります。</li>
+          <li data-i18n-html="help.dayhour.tip.range"><strong>期間絞り込みとの併用:</strong> メインチャートで特定の月を選択すると、季節やイベント期間ごとの曜日パターンの変化を比較分析できます。</li>
         </ul>
       </div>
     </section>
 
-    <footer>
+    <footer data-i18n="help.footer">
       &copy; 2026 JenniferSoft, Inc. All rights reserved.
     </footer>
   </div>
+  <script type="module" src="../src/i18n.js"></script>
 </body>
 
 </html>

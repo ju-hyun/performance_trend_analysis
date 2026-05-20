@@ -6,7 +6,7 @@
   <link rel="icon" type="image/svg+xml" href="./vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="./config.js"></script>
-  <title>性能トレンド分析</title>
+  <title data-i18n="app.title">性能トレンド分析</title>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
     rel="stylesheet" crossorigin />
   <!-- D3.js & d3-hexbin -->
@@ -23,45 +23,50 @@
       <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loader-content">
           <div class="premium-spinner"></div>
-          <p class="loading-text">データロード中...</p>
+          <p class="loading-text" data-i18n="loading">データロード中...</p>
         </div>
       </div>
 
       <!-- Filters Section -->
       <section class="filters-card">
         <div class="filter-group domain-filter-group">
-          <label>ドメイン</label>
+          <label data-i18n="filter.domain">ドメイン</label>
           <div id="hierarchicalDomainSelector" class="hierarchical-selector">
             <div class="breadcrumb-container" id="breadcrumbContainer">
-              <div class="breadcrumb-item loading">データロード中...</div>
+              <div class="breadcrumb-item loading" data-i18n="loading">データロード中...</div>
             </div>
           </div>
         </div>
 
         <div class="filter-group target-type-group">
-          <label>対象</label>
+          <label data-i18n="filter.target">対象</label>
           <div class="toggle-group">
             <input type="radio" id="typeInstance" name="targetType" value="instance" checked>
-            <label for="typeInstance">インスタンス</label>
+            <label for="typeInstance" data-i18n="target.instance">インスタンス</label>
             <input type="radio" id="typeBusiness" name="targetType" value="business">
-            <label for="typeBusiness">ビジネス</label>
+            <label for="typeBusiness" data-i18n="target.business">ビジネス</label>
           </div>
         </div>
 
         <div class="filter-group instance-filter-group" id="instanceFilterArea">
           <select id="instanceSelect" class="form-select">
-            <option value="">全体インスタンス</option>
+            <option value="" data-i18n="select.allInstances">全体インスタンス</option>
           </select>
         </div>
 
         <div class="filter-group business-filter-group hidden" id="businessFilterArea">
           <select id="businessSelect" class="form-select">
-            <option value="">全体ビジネス</option>
+            <option value="" data-i18n="select.allBusinesses">全体ビジネス</option>
           </select>
         </div>
 
         <div class="filter-actions">
-          <button id="mainHelpBtn" class="help-btn-circle" title="ヘルプ">
+          <select id="langSelect" class="form-select lang-select" aria-label="Language">
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+          <button id="mainHelpBtn" class="help-btn-circle" data-i18n-title="help" title="ヘルプ">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -78,17 +83,17 @@
         <div class="chart-card single-chart-card">
           <div class="chart-header">
             <div class="metrics-toggle" id="metricsToggle">
-              <button class="metric-btn active" data-metric="service_time">応答時間</button>
-              <button class="metric-btn" data-metric="service_rate">TPS</button>
-              <button class="metric-btn" data-metric="service_count">Hit数</button>
-              <button class="metric-btn" data-metric="concurrent_user">同時ユーザ数</button>
-              <button class="metric-btn" data-metric="err_rate">エラー率</button>
-              <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu">システムCPU</button>
-              <button class="metric-btn hidden" data-metric="heap_usage" id="btnHeapUsage">ヒープメモリ使用率</button>
+              <button class="metric-btn active" data-metric="service_time" data-i18n="metric.service_time">応答時間</button>
+              <button class="metric-btn" data-metric="service_rate" data-i18n="metric.service_rate">TPS</button>
+              <button class="metric-btn" data-metric="service_count" data-i18n="metric.service_count">Hit数</button>
+              <button class="metric-btn" data-metric="concurrent_user" data-i18n="metric.concurrent_user">同時ユーザ数</button>
+              <button class="metric-btn" data-metric="err_rate" data-i18n="metric.err_rate">エラー率</button>
+              <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu" data-i18n="metric.sys_cpu">システムCPU</button>
+              <button class="metric-btn hidden" data-metric="heap_usage" id="btnHeapUsage" data-i18n="metric.heap_usage">ヒープメモリ使用率</button>
             </div>
             <div class="header-controls">
               <div class="ma-toggle-group" id="maToggle">
-                <span class="toggle-label">移動平均</span>
+                <span class="toggle-label" data-i18n="ma">移動平均</span>
                 <button class="toggle-btn active" data-ma="on">On</button>
                 <button class="toggle-btn" data-ma="off">Off</button>
               </div>
@@ -103,11 +108,11 @@
           </div>
           <div class="chart-stats-container" id="chartStats">
             <div class="stats-row stats-avg-row">
-              <div class="stats-label">平均</div>
+              <div class="stats-label" data-i18n="stats.avg">平均</div>
               <div class="stats-values-wrapper" id="statsAvgValues"></div>
             </div>
             <div class="stats-row stats-rate-row">
-              <div class="stats-label">前月比</div>
+              <div class="stats-label" data-i18n="stats.mom">前月比</div>
               <div class="stats-values-wrapper" id="statsRateValues"></div>
             </div>
           </div>
@@ -131,9 +136,9 @@
                 <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"></circle>
               </svg>
             </span>
-            <h3>期間</h3>
+            <h3 data-i18n="summary.period">期間</h3>
           </div>
-          <div class="summary-value selection-value" id="selectedRangeDisplay">ロード中...</div>
+          <div class="summary-value selection-value" id="selectedRangeDisplay" data-i18n="loadingShort">ロード中...</div>
         </div>
         <div class="summary-card">
           <div class="summary-header">
@@ -144,7 +149,7 @@
                 <polyline points="17 6 23 6 23 12"></polyline>
               </svg>
             </span>
-            <h3>ピーク日</h3>
+            <h3 data-i18n="summary.peakDate">ピーク日</h3>
           </div>
           <div class="summary-value" id="peakDate">-</div>
         </div>
@@ -157,7 +162,7 @@
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
             </span>
-            <h3>平均応答時間</h3>
+            <h3 data-i18n="summary.avgResponseTime">平均応答時間</h3>
           </div>
           <div class="summary-value" id="avgResponseTime">0 <span class="unit">ms</span></div>
         </div>
@@ -169,7 +174,7 @@
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </span>
-            <h3>平均TPS</h3>
+            <h3 data-i18n="summary.avgTps">平均TPS</h3>
           </div>
           <div class="summary-value" id="avgTps">0</div>
         </div>
@@ -184,7 +189,7 @@
                 <circle cx="12" cy="7" r="5"></circle>
               </svg>
             </span>
-            <h3>平均Hit数</h3>
+            <h3 data-i18n="summary.avgHits">平均Hit数</h3>
           </div>
           <div class="summary-value" id="avgHits">0</div>
         </div>
@@ -199,7 +204,7 @@
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             </span>
-            <h3>平均同時ユーザ数</h3>
+            <h3 data-i18n="summary.avgUsers">平均同時ユーザ数</h3>
           </div>
           <div class="summary-value" id="avgConcurrentUsers">0</div>
         </div>
@@ -214,7 +219,7 @@
                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
             </span>
-            <h3>平均エラー率</h3>
+            <h3 data-i18n="summary.avgErrRate">平均エラー率</h3>
           </div>
           <div class="summary-value" id="avgErrRate">0%</div>
         </div>
@@ -236,7 +241,7 @@
                 <line x1="1" y1="15" x2="4" y2="15"></line>
               </svg>
             </span>
-            <h3>平均CPU</h3>
+            <h3 data-i18n="summary.avgCpu">平均CPU</h3>
           </div>
           <div class="summary-value" id="avgSysCpu">0%</div>
         </div>
@@ -252,7 +257,7 @@
                 <path d="M22 19V15"></path>
               </svg>
             </span>
-            <h3>平均ヒープメモリ</h3>
+            <h3 data-i18n="summary.avgHeap">平均ヒープメモリ</h3>
           </div>
           <div class="summary-value" id="avgHeapUsage">0%</div>
         </div>
@@ -263,8 +268,8 @@
         <div class="chart-card heatmap-card">
           <div class="chart-header">
             <div class="title-with-help">
-              <h3>データ分布 (Overall)</h3>
-              <button class="help-btn-small" data-help-section="overall" title="分析ガイド">
+              <h3 data-i18n="heatmap.overall">データ分布 (Overall)</h3>
+              <button class="help-btn-small" data-help-section="overall" data-i18n-title="guide" title="分析ガイド">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -274,25 +279,25 @@
               </button>
             </div>
             <div class="heatmap-legend">
-              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 0.1)"></span>低</span>
-              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 1)"></span>高</span>
+              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 0.1)"></span><span data-i18n="legend.low">低</span></span>
+              <span class="legend-item"><span class="dot" style="background: rgba(34, 197, 94, 1)"></span><span data-i18n="legend.high">高</span></span>
             </div>
           </div>
           <div class="heatmap-container" id="overallHeatmap">
             <!-- Overall Heatmap Content -->
-            <div class="heatmap-placeholder">データロード後、表示されます。</div>
+            <div class="heatmap-placeholder" data-i18n="heatmap.afterLoad">データロード後、表示されます。</div>
           </div>
           <div class="heatmap-footer">
-            <span class="axis-label y-axis-label" id="overallHeatmapLabelY">応答時間 (ms)</span>
-            <span class="axis-label x-axis-label">Hit数 (count)</span>
+            <span class="axis-label y-axis-label" id="overallHeatmapLabelY" data-i18n="axis.responseTimeMs">応答時間 (ms)</span>
+            <span class="axis-label x-axis-label" data-i18n="axis.hitsCount">Hit数 (count)</span>
           </div>
         </div>
 
         <div class="chart-card heatmap-card">
           <div class="chart-header">
             <div class="title-with-help">
-              <h3>曜日 x 時間帯別分布</h3>
-              <button class="help-btn-small" data-help-section="dayhour" title="分析ガイド">
+              <h3 data-i18n="heatmap.dayhour">曜日 x 時間帯別分布</h3>
+              <button class="help-btn-small" data-help-section="dayhour" data-i18n-title="guide" title="分析ガイド">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -302,20 +307,20 @@
               </button>
             </div>
             <div class="heatmap-legend">
-              <span class="legend-item"><span class="status-box good"></span><span id="legendGoodText">安定</span></span>
+              <span class="legend-item"><span class="status-box good"></span><span id="legendGoodText" data-i18n="legend.good">安定</span></span>
               <span class="legend-item"><span class="status-box warning"></span><span
-                  id="legendWarningText">警戒</span></span>
+                  id="legendWarningText" data-i18n="legend.warning">警戒</span></span>
               <span class="legend-item"><span class="status-box danger"></span><span
-                  id="legendDangerText">高</span></span>
+                  id="legendDangerText" data-i18n="legend.danger">高</span></span>
             </div>
           </div>
           <div class="heatmap-container" id="dayHourHeatmap">
             <!-- Day x Hour Heatmap Content -->
-            <div class="heatmap-placeholder">データロード後、表示されます。</div>
+            <div class="heatmap-placeholder" data-i18n="heatmap.afterLoad">データロード後、表示されます。</div>
           </div>
           <div class="heatmap-footer">
-            <span class="axis-label y-axis-label">曜日 (Day)</span>
-            <span class="axis-label x-axis-label">時間帯 (Hour)</span>
+            <span class="axis-label y-axis-label" data-i18n="axis.day">曜日 (Day)</span>
+            <span class="axis-label x-axis-label" data-i18n="axis.hour">時間帯 (Hour)</span>
           </div>
         </div>
       </section>
@@ -324,16 +329,16 @@
     <!-- Day-Hour Heatmap Detail Slide-in Layer -->
     <div id="dayHourDetailLayer" class="dayhour-detail-layer">
       <div class="layer-header">
-        <h3>詳細データリスト</h3>
-        <button id="closeDayHourLayer" class="close-layer-btn" title="닫기">✕</button>
+        <h3 data-i18n="layer.detailList">詳細データリスト</h3>
+        <button id="closeDayHourLayer" class="close-layer-btn" data-i18n-title="close" title="닫기">✕</button>
       </div>
       <div class="layer-content">
         <table class="detail-list-table">
           <thead>
             <tr>
-              <th>No.</th>
-              <th>日付</th>
-              <th id="dayHourDetailMetricHeader">メトリクス値</th>
+              <th data-i18n="th.no">No.</th>
+              <th data-i18n="th.date">日付</th>
+              <th id="dayHourDetailMetricHeader" data-i18n="th.metricValue">メトリクス値</th>
             </tr>
           </thead>
           <tbody id="dayHourDetailListBody">
@@ -346,18 +351,18 @@
     <!-- Overall Heatmap Detail Slide-in Layer -->
     <div id="overallDetailLayer" class="overall-detail-layer">
       <div class="layer-header">
-        <h3>詳細データリスト</h3>
-        <button id="closeDetailLayer" class="close-layer-btn" title="닫기">✕</button>
+        <h3 data-i18n="layer.detailList">詳細データリスト</h3>
+        <button id="closeDetailLayer" class="close-layer-btn" data-i18n-title="close" title="닫기">✕</button>
       </div>
       <div class="layer-content">
         <table class="detail-list-table">
           <thead>
             <tr>
-              <th>No.</th>
-              <th>日付</th>
-              <th>時間</th>
-              <th>Hit数</th>
-              <th id="detailMetricHeader">メトリクス値</th>
+              <th data-i18n="th.no">No.</th>
+              <th data-i18n="th.date">日付</th>
+              <th data-i18n="th.time">時間</th>
+              <th data-i18n="th.hits">Hit数</th>
+              <th id="detailMetricHeader" data-i18n="th.metricValue">メトリクス値</th>
             </tr>
           </thead>
           <tbody id="detailListBody">
