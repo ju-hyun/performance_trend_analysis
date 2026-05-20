@@ -1745,11 +1745,11 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
       const formatThreshold = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       legendGoodText.innerHTML = `安定 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(goodThreshold)}${unit})</span>`;
       legendWarningText.innerHTML = `警戒 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(≤ ${formatThreshold(warningThreshold)}${unit})</span>`;
-      legendDangerText.innerHTML = `高 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
+      legendDangerText.innerHTML = `高負荷 <span style="font-size: 0.65rem; color: #94a3b8; margin-left: 2px;">(> ${formatThreshold(warningThreshold)}${unit})</span>`;
     } else {
       legendGoodText.textContent = '安定';
       legendWarningText.textContent = '警戒';
-      legendDangerText.textContent = '高';
+      legendDangerText.textContent = '高負荷';
     }
   }
 

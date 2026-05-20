@@ -240,6 +240,26 @@
             filter: brightness(1.1);
         }
 
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
+            transform: scale(1.05);
+        }
+
         .card.disabled {
             opacity: 0.5;
             border-style: dashed;
@@ -350,7 +370,11 @@
                     <span class="card-icon">📊</span>
                     <h2>性能トレンド分析</h2>
                     <p>システムの長期的な性能推移を分析し、時間帯別/曜日別のパターンを可視化。最適なキャパシティプランニングを支援します。</p>
-                    <a href="pta/" class="btn">実験を開始する</a>
+                    <div class="btn-group">
+                        <a href="pta/" class="btn">実験を開始する</a>
+                        <a href="https://forms.gle/2FQe5bKTBUBznSjX8" target="_blank" rel="noopener noreferrer"
+                            class="btn">アンケートに回答する</a>
+                    </div>
                 </div>
             </article>
 
