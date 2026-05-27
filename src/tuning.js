@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import { getLang } from './i18n.js';
+import { t, getLang } from './i18n.js';
 
 // 설정 정보 로드
 const PTA_CFG = window.PTA_CONFIG || {};
@@ -183,7 +183,7 @@ function buildDomainTree(flatDomains) {
   const tree = [];
   flatDomains.forEach(domain => {
     let currentLevel = tree;
-    const hierarchy = domain.groupHierarchy || ['未分類ドメイン'];
+    const hierarchy = domain.groupHierarchy || [t('domain.uncategorized')];
 
     hierarchy.forEach((groupName) => {
       let group = currentLevel.find(item => item.name === groupName && item.type === 'group');
@@ -244,7 +244,7 @@ async function loadInstances(domainId) {
     const instances = data.result || [];
     instances.sort((a, b) => a.instanceId - b.instanceId);
 
-    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
+    instanceSelect.innerHTML = `<option value="">${t('select.allInstances')}</option>`;
     instances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -257,7 +257,7 @@ async function loadInstances(domainId) {
       { instanceId: '1', name: `Instance-${domainId}-1 (AP Server)` },
       { instanceId: '2', name: `Instance-${domainId}-2 (Batch Server)` }
     ];
-    instanceSelect.innerHTML = '<option value="">인스턴스 전체</option>';
+    instanceSelect.innerHTML = `<option value="">${t('select.allInstances')}</option>`;
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -286,7 +286,7 @@ async function fetchBusinesses(domainId) {
     const data = await response.json();
     const businesses = data.result || [];
 
-    businessSelect.innerHTML = '<option value="">全体ビジネス</option>';
+    businessSelect.innerHTML = `<option value="">${t('select.allBusinesses')}</option>`;
     businesses.forEach(biz => {
       const option = document.createElement('option');
       option.value = biz.businessId;
@@ -301,7 +301,7 @@ async function fetchBusinesses(domainId) {
       { businessId: '101', name: 'User Authentication API' },
       { businessId: '102', name: 'Order & Payment Service' }
     ];
-    businessSelect.innerHTML = '<option value="">비즈니스 전체</option>';
+    businessSelect.innerHTML = `<option value="">${t('select.allBusinesses')}</option>`;
     mockBiz.forEach(biz => {
       const option = document.createElement('option');
       option.value = biz.businessId;

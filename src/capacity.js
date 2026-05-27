@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import { getLang } from './i18n.js';
+import { t, getLang } from './i18n.js';
 
 // 설정 정보 로드
 const PTA_CFG = window.PTA_CONFIG || {};
@@ -130,7 +130,7 @@ function buildDomainTree(flatDomains) {
   const tree = [];
   flatDomains.forEach(domain => {
     let currentLevel = tree;
-    const hierarchy = domain.groupHierarchy || ['未分類ドメイン'];
+    const hierarchy = domain.groupHierarchy || [t('domain.uncategorized')];
 
     hierarchy.forEach((groupName) => {
       let group = currentLevel.find(item => item.name === groupName && item.type === 'group');
