@@ -76,18 +76,14 @@ async function fetchMetricData(domainId, targetId, targetType, startTime, endTim
   return data.result || [];
 }
 
-function estimateLogNormalParams(data, defaultMedian = 160) {
+function estimateLogNormalParams(data) {
   if (!data || data.length < 3) {
-    const mu = Math.log(defaultMedian);
-    const sigma = 0.45;
-    return { mu, sigma };
+    return null;
   }
 
   const values = data.map(item => item.value).filter(val => val > 0);
   if (values.length < 3) {
-    const mu = Math.log(defaultMedian);
-    const sigma = 0.45;
-    return { mu, sigma };
+    return null;
   }
 
   const logs = values.map(val => Math.log(val));
@@ -421,8 +417,15 @@ async function loadData() {
       realDataA = resTimeA;
       realDataB = resTimeB;
 
-      if (realDataA && realDataA.length > 2 && realDataB && realDataB.length > 2) {
+      const paramsA = estimateLogNormalParams(realDataA);
+      const paramsB = estimateLogNormalParams(realDataB);
+
+      if (paramsA && paramsB) {
         realDataFetched = true;
+        muA = paramsA.mu;
+        sigmaA = paramsA.sigma;
+        muB = paramsB.mu;
+        sigmaB = paramsB.sigma;
         
         cpuValA = cpuA.length ? (cpuA.reduce((sum, item) => sum + item.value, 0) / cpuA.length) : 0;
         cpuValB = cpuB.length ? (cpuB.reduce((sum, item) => sum + item.value, 0) / cpuB.length) : 0;
@@ -470,12 +473,6 @@ async function loadData() {
     return;
   }
 
-  const paramsA = estimateLogNormalParams(realDataA, 160);
-  const paramsB = estimateLogNormalParams(realDataB, 200);
-  muA = paramsA.mu;
-  sigmaA = paramsA.sigma;
-  muB = paramsB.mu;
-  sigmaB = paramsB.sigma;
   const driftMs = Math.round(Math.exp(muB) - Math.exp(muA));
 
   // 백분위 지표 계산
@@ -596,7 +593,7 @@ function renderDriftCauses(avgDiffVal, cpuA, cpuB, heapA, heapB, errA, errB) {
         causes.push({
           icon: '⚡',
           title: `CPU使用率上昇による演算遅延 (CPUドリフトの疑い: +${cpuDiff.toFixed(1)}%)`,
-          desc: `基準期間と比較して平均CPU使用率が ${cpuDiff.toFixed(1)}%p 増加しました。アプリケーションの演算処理の増加、非効率なループ、またはスレッド競합이 원인일 수 있습니다.`
+          desc: `基準期間と比較して平均CPU使用率が ${cpuDiff.toFixed(1)}%p 増加しました。アプリケーションの演算処理の増加、非効率なループ、またはスレッド競合が原因である可能性があります。`
         });
       } else {
         causes.push({
@@ -641,7 +638,7 @@ function renderDriftCauses(avgDiffVal, cpuA, cpuB, heapA, heapB, errA, errB) {
       } else if (currentLang === 'ja') {
         causes.push({
           icon: '🚨',
-          title: `トランザクションエラー発生数の増加 (エラードリフトの疑い: +${errDiff.toFixed(1)}/件/時)`,
+          title: `トランザクションエラー発生数の増加 (エラードリフトの疑い: +${errDiff.toFixed(1)}件/時)`,
           desc: `1時間あたりの平均エラー件数が ${errDiff.toFixed(1)} 件増加しました。例外処理(Exception Handling)のオーバーヘッドやエラー回復ロジックの実行が遅延を引き起こしている可能性があります。`
         });
       } else {
