@@ -215,15 +215,32 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      color: var(--text-secondary);
+      color: var(--text-secondary, #64748b);
       text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.3s;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.45rem 1rem;
+      background: #ffffff;
+      border: 1px solid var(--border-color, #e2e8f0);
+      border-radius: 30px; /* 둥근 칩 디자인 */
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .back-link svg {
+      transition: transform 0.25s ease;
     }
 
     .back-link:hover {
-      color: var(--accent-color);
+      color: var(--primary-color, #22c55e);
+      border-color: var(--primary-color, #22c55e);
+      background: rgba(34, 197, 94, 0.04);
+      box-shadow: 0 4px 10px rgba(34, 197, 94, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .back-link:hover svg {
+      transform: translateX(-3px); /* 호버 시 화살표가 왼쪽으로 슥 이동 */
     }
 
     .lang-switcher {
