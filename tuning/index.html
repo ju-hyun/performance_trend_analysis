@@ -192,7 +192,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="app-container">
     <main class="main-content">
@@ -200,56 +199,61 @@
       <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loader-content">
           <div class="premium-spinner"></div>
-          <p class="loading-text">データロード中...</p>
+          <p class="loading-text" data-i18n="loading">データロード中...</p>
         </div>
       </div>
 
-      <div class="back-btn-container">
+      <div class="back-btn-container" style="display: flex; justify-content: space-between; align-items: center;">
         <a href="../" class="back-link">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          実験スペースに戻る
+          <span data-i18n="backToLab">実験スペースに戻る</span>
         </a>
+        <select id="langSelect" class="lang-switcher" aria-label="Language">
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+        </select>
       </div>
 
       <!-- Filters Section -->
       <section class="filters-card">
         <div class="filter-group domain-filter-group">
-          <label>ドメイン</label>
+          <label data-i18n="filter.domain">ドメイン</label>
           <div id="hierarchicalDomainSelector" class="hierarchical-selector">
             <div class="breadcrumb-container" id="breadcrumbContainer">
-              <div class="breadcrumb-item loading">データロード中...</div>
+              <div class="breadcrumb-item loading" data-i18n="loading">データロード中...</div>
             </div>
           </div>
         </div>
 
         <div class="filter-group target-type-group">
-          <label>対象</label>
+          <label data-i18n="filter.target">対象</label>
           <div class="toggle-group">
             <input type="radio" id="typeInstance" name="targetType" value="instance" checked>
-            <label for="typeInstance">インスタンス</label>
+            <label for="typeInstance" data-i18n="target.instance">インスタンス</label>
             <input type="radio" id="typeBusiness" name="targetType" value="business">
-            <label for="typeBusiness">ビジネス</label>
+            <label for="typeBusiness" data-i18n="target.business">ビジネス</label>
           </div>
         </div>
 
         <div class="filter-group instance-filter-group" id="instanceFilterArea">
           <select id="instanceSelect" class="form-select">
-            <option value="">全体インスタンス</option>
+            <option value="" data-i18n="select.allInstances">全体インスタンス</option>
           </select>
         </div>
 
         <div class="filter-group business-filter-group hidden" id="businessFilterArea">
           <select id="businessSelect" class="form-select">
-            <option value="">全体ビジネス</option>
+            <option value="" data-i18n="select.allBusinesses">全体ビジネス</option>
           </select>
         </div>
 
         <div class="filter-actions">
-          <button id="tuningHelpBtn" class="help-btn-circle" title="分析ヘルプ">
+          <button id="tuningHelpBtn" class="help-btn-circle" data-i18n-title="help" title="分析ヘルプ">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -263,14 +267,14 @@
       <!-- Before / After Period Selection -->
       <section class="period-selectors">
         <div class="datepicker-wrapper">
-          <label>改善前 (Before) 期間:</label>
+          <label data-i18n="tuning.beforePeriod">改善前 (Before) 期間:</label>
           <input type="text" id="beforeStart" class="flatpickr-input-custom">
           <span class="divider-dot">~</span>
           <input type="text" id="beforeEnd" class="flatpickr-input-custom">
         </div>
         <span class="divider-dot">|</span>
         <div class="datepicker-wrapper">
-          <label>改善後 (After) 期間:</label>
+          <label data-i18n="tuning.afterPeriod">改善後 (After) 期間:</label>
           <input type="text" id="afterStart" class="flatpickr-input-custom">
           <span class="divider-dot">~</span>
           <input type="text" id="afterEnd" class="flatpickr-input-custom">
@@ -280,22 +284,22 @@
       <!-- Tuning Comparison Dashboard Cards -->
       <section class="tuning-grid">
         <div class="tuning-card">
-          <h4>平均応答時間 (Response Time)</h4>
+          <h4 data-i18n="tuning.avgResponseTimeCard">平均応答時間 (Response Time)</h4>
           <div class="value" id="rtVal">- ms</div>
           <div class="change-rate" id="rtDiff">-</div>
         </div>
         <div class="tuning-card">
-          <h4>平均 TPS</h4>
+          <h4 data-i18n="tuning.avgTpsCard">平均 TPS</h4>
           <div class="value" id="tpsVal">-</div>
           <div class="change-rate" id="tpsDiff">-</div>
         </div>
         <div class="tuning-card">
-          <h4>エラー率 (Error Rate)</h4>
+          <h4 data-i18n="tuning.errRateCard">エラー率 (Error Rate)</h4>
           <div class="value" id="errVal">-%</div>
           <div class="change-rate" id="errDiff">-</div>
         </div>
         <div class="tuning-card">
-          <h4>リソース効率性 (CPU/TPS)</h4>
+          <h4 data-i18n="tuning.resourceEfficiencyCard">リソース効率性 (CPU/TPS)</h4>
           <div class="value" id="effVal">- %</div>
           <div class="change-rate" id="effDiff">-</div>
         </div>
@@ -305,10 +309,10 @@
       <section class="chart-card single-chart-card">
         <div class="chart-header">
           <div class="metrics-toggle" id="metricsToggle">
-            <button class="metric-btn active" data-metric="service_time">応答時間</button>
-            <button class="metric-btn" data-metric="service_rate">TPS</button>
-            <button class="metric-btn" data-metric="err_rate">エラー率</button>
-            <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu">CPU使用率</button>
+            <button class="metric-btn active" data-metric="service_time" data-i18n="metric.service_time">応答時間</button>
+            <button class="metric-btn" data-metric="service_rate" data-i18n="metric.service_rate">TPS</button>
+            <button class="metric-btn" data-metric="err_rate" data-i18n="metric.err_rate">エラー率</button>
+            <button class="metric-btn hidden" data-metric="sys_cpu" id="btnSysCpu" data-i18n="metric.sys_cpu">CPU使用率</button>
           </div>
           <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; gap: 1rem;">
             <span><span style="color: #f87171; font-weight: bold;">■</span> Before</span>
@@ -323,7 +327,7 @@
       <!-- Diagnostic & Improvement Reports -->
       <section class="tuning-report-section">
         <div class="detail-report-box">
-          <h3>
+          <h3 data-i18n="tuning.beforeBottleneckHeader">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
@@ -333,12 +337,12 @@
             改善前のボトルネック診断 (Before Analysis)
           </h3>
           <ul class="report-list" id="beforeDiagnosisReport">
-            <li>データ読み込み後に診断が実行されます。</li>
+            <li data-i18n="tuning.defaultDiagnosisText">データ読み込み後に診断が実行されます。</li>
           </ul>
         </div>
 
         <div class="detail-report-box">
-          <h3>
+          <h3 data-i18n="tuning.verdictHeader">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -347,7 +351,7 @@
             改善効果検証リポート (Tuning Verdict)
           </h3>
           <ul class="report-list" id="tuningEffectVerdict">
-            <li>改善前と改善後のデータを比較して、パフォーマンスの検証結果を表示します。</li>
+            <li data-i18n="tuning.defaultVerdictText">改善前と改善後のデータを比較して、パフォーマンスの検証結果を表示します。</li>
           </ul>
         </div>
       </section>
@@ -358,7 +362,8 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+  <script type="module" src="../src/i18n.js"></script>
   <script type="module" src="../src/tuning.js"></script>
 </body>
-
 </html>

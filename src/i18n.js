@@ -105,15 +105,57 @@ const DICT = {
   'landing.ptaBtn': { ja: '実験を開始する', ko: '실험 시작하기', en: 'Start Experiment' },
   'landing.soonTitle': { ja: '新しい分析画面', ko: '새로운 분석 화면', en: 'New Analysis Screen' },
   'landing.soonDesc': {
-    ja: 'OpenAPIを活用した新しいデータ可視化のアイデアを準備中です。近日公開予定です。',
+    ja: 'OpenAPIを活用した新しいデータ可視化의 아이디어를 준비중입니다. 近日公開予定です。',
     ko: 'OpenAPI를 활용한 새로운 데이터 시각화 아이디어를 준비 중입니다. 곧 공개될 예정입니다.',
     en: 'New data visualization ideas leveraging the OpenAPI are in preparation. Coming soon.'
   },
+  'landing.capacityTitle': { ja: 'リソース増設予測 & 妥当性分析', ko: '리소스 증설 예측 & 타당성 분석', en: 'Resource Expansion Forecast & Verdict' },
+  'landing.capacityDesc': {
+    ja: 'CPUやメモリの長期トレンドを分析し、線形回帰アルゴリズムを用いて限界値の到達予想時期や増設の妥当性レポートを確認します。',
+    ko: 'CPU 및 Memory의 장기 추세를 분석하고 선형 회귀 알고리즘으로 임계치 도달 예상 시점 및 증설 타당성 리포트를 확인합니다.',
+    en: 'Analyzes long-term trends of CPU and memory, and uses linear regression to check expected resource exhaustion dates and capacity expansion reports.'
+  },
+  'landing.capacityBtn': { ja: '実験を開始する', ko: '실험 시작하기', en: 'Start Experiment' },
+  'landing.tuningTitle': { ja: '性能改善 前後効果分析', ko: '성능 개선 전후 효과 분석', en: 'Performance Tuning & Comparison' },
+  'landing.tuningDesc': {
+    ja: '性能チューニングやソースコード配備の前後期間を比較し、応答時間の短縮率やリソース使用効率を総合的に検証します。',
+    ko: '성능 튜닝 및 소스 배포 전후의 특정 기간을 비교하여, 응답시간 단축율 및 리소스 사용 효율성을 종합 검증합니다.',
+    en: 'Compares performance before and after tuning or code deployment, and thoroughly verifies response time improvements and resource efficiency.'
+  },
+  'landing.tuningBtn': { ja: '実験を開始する', ko: '실험 시작하기', en: 'Start Experiment' },
   'landing.footer1': {
     ja: '<strong>JENNIFER Expansion Labo</strong> は、株式会社JenniferSoftが運営するプロトタイプサイトです。<br> ここで公開されるすべての機能はプロトタイプであり、将来的なサービスへの搭載を保証するものではありません。',
     ko: '<strong>JENNIFER Expansion Labo</strong>는 주식회사 JenniferSoft가 운영하는 프로토타입 사이트입니다.<br> 여기에서 공개되는 모든 기능은 프로토타입이며, 향후 서비스 탑재를 보장하지 않습니다.',
     en: '<strong>JENNIFER Expansion Labo</strong> is a prototype site operated by JenniferSoft, Inc.<br> All features published here are prototypes and do not guarantee future inclusion in any service.'
   },
+
+  'backToLab': { ja: '実験スペースに戻る', ko: '실험 공간으로 돌아가기', en: 'Back to Lab' },
+  
+  // --- Capacity planning page ---
+  'capacity.pageTitle': { ja: 'リソース増設予測 & 妥当性分析', ko: '리소스 증설 예측 & 타당성 분석', en: 'Resource Capacity Planning' },
+  'filter.targetInstance': { ja: '対象インスタンス', ko: '대상 인스턴스', en: 'Target Instance' },
+  'capacity.forecast': { ja: '予測線', ko: '예측선', en: 'Forecast' },
+  'capacity.reportTitle': { ja: '増設妥当性診断', ko: '증설 타당성 진단', en: 'Capacity Expansion Verdict' },
+  'capacity.thresholdTitle': { ja: 'アラート臨界値 (Threshold)', ko: '경보 임계치 (Threshold)', en: 'Alert Threshold' },
+  'capacity.recentAvg': { ja: '直近平均使用率', ko: '최근 평균 사용률', en: 'Recent Average Usage' },
+  'capacity.monthlyIncrease': { ja: '月平均上昇幅 (Trend)', ko: '월 평균 상승폭 (Trend)', en: 'Monthly Trend (Slope)' },
+  'capacity.limitForecast': { ja: '臨界値到達予想', ko: '임계치 도달 예상', en: 'Expected Exhaustion Date' },
+  'capacity.peakExceed': { ja: 'ピーク超過比率 (直近30日)', ko: '피크 임계 초과 비율 (최근 30일)', en: 'Peak Exceeded Ratio (Last 30d)' },
+  'capacity.reportCardHeader': { ja: '診断レポート', ko: '진단 리포트', en: 'Diagnostic Verdict Report' },
+  'capacity.defaultDescription': { ja: 'データを読み込み中か、十分なデータがありません。インスタンスを選択すると分析が開始されます。', ko: '데이터를 읽어오는 중이거나 데이터가 부족합니다. 인스턴스를 선택하면 분석이 시작됩니다.', en: 'Loading data or insufficient data. Select an instance to start analysis.' },
+  
+  // --- Tuning comparison page ---
+  'tuning.pageTitle': { ja: '性能改善の根拠 & 効果分析', ko: '성능 개선의 근거 & 효과 분석', en: 'Performance Tuning & Comparison' },
+  'tuning.beforePeriod': { ja: '改善前 (Before) 期間:', ko: '개선 전 (Before) 기간:', en: 'Before Tuning Period:' },
+  'tuning.afterPeriod': { ja: '改善後 (After) 期間:', ko: '개선 후 (After) 期間:', en: 'After Tuning Period:' },
+  'tuning.avgResponseTimeCard': { ja: '平均応答時間 (Response Time)', ko: '평균 응답시간 (Response Time)', en: 'Avg Response Time' },
+  'tuning.avgTpsCard': { ja: '平均 TPS', ko: '평균 TPS', en: 'Avg TPS' },
+  'tuning.errRateCard': { ja: 'エラー率 (Error Rate)', ko: '에러율 (Error Rate)', en: 'Error Rate' },
+  'tuning.resourceEfficiencyCard': { ja: 'リソース効率性 (CPU/TPS)', ko: '리소스 효율성 (CPU/TPS)', en: 'Resource Efficiency (CPU/TPS)' },
+  'tuning.beforeBottleneckHeader': { ja: '改善前のボトルネック診断 (Before Analysis)', ko: '개선 전 Bottleneck 진단 (Before Analysis)', en: 'Before-Tuning Bottleneck Diagnosis' },
+  'tuning.verdictHeader': { ja: '改善効果検証リポート (Tuning Verdict)', ko: '개선 효과 검증 리포트 (Tuning Verdict)', en: 'Tuning Effect Verdict Report' },
+  'tuning.defaultDiagnosisText': { ja: 'データ読み込み後に診断が実行されます。', ko: '데이터를 읽어온 후 진단 리포트가 생성됩니다.', en: 'Diagnosis will be generated after data loads.' },
+  'tuning.defaultVerdictText': { ja: '改善前と改善後のデータを比較して、パフォーマンスの検証結果を表示します。', ko: '개선 전후의 성능 지표를 종합 분석하여 성과 검증 결과를 보여줍니다.', en: 'Performance verdict will be displayed after comparing before and after datasets.' },
 
   // --- Help page ---
   'help.title': {

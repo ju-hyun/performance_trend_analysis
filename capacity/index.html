@@ -176,7 +176,6 @@
     }
   </style>
 </head>
-
 <body>
   <div class="app-container">
     <main class="main-content">
@@ -184,42 +183,47 @@
       <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loader-content">
           <div class="premium-spinner"></div>
-          <p class="loading-text">データロード中...</p>
+          <p class="loading-text" data-i18n="loading">データロード中...</p>
         </div>
       </div>
 
-      <div class="back-btn-container">
+      <div class="back-btn-container" style="display: flex; justify-content: space-between; align-items: center;">
         <a href="../" class="back-link">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          実験スペースに戻る
+          <span data-i18n="backToLab">実験スペースに戻る</span>
         </a>
+        <select id="langSelect" class="lang-switcher" aria-label="Language">
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+        </select>
       </div>
 
       <!-- Filters Section -->
       <section class="filters-card">
         <div class="filter-group domain-filter-group">
-          <label>ドメイン</label>
+          <label data-i18n="filter.domain">ドメイン</label>
           <div id="hierarchicalDomainSelector" class="hierarchical-selector">
             <div class="breadcrumb-container" id="breadcrumbContainer">
-              <div class="breadcrumb-item loading">データロード中...</div>
+              <div class="breadcrumb-item loading" data-i18n="loading">データロード中...</div>
             </div>
           </div>
         </div>
 
         <div class="filter-group instance-filter-group" id="instanceFilterArea">
-          <label>対象インスタンス</label>
+          <label data-i18n="filter.targetInstance">対象インスタンス</label>
           <select id="instanceSelect" class="form-select">
-            <option value="">全体インスタンス</option>
+            <option value="" data-i18n="select.allInstances">全体インスタンス</option>
           </select>
         </div>
 
         <div class="filter-actions">
           <!-- Help Button -->
-          <button id="capacityHelpBtn" class="help-btn-circle" title="分析ヘルプ">
+          <button id="capacityHelpBtn" class="help-btn-circle" data-i18n-title="help" title="分析ヘルプ">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
@@ -236,12 +240,12 @@
         <section class="chart-card single-chart-card">
           <div class="chart-header">
             <div class="metrics-toggle" id="metricsToggle">
-              <button class="metric-btn active" data-metric="sys_cpu">システムCPU</button>
-              <button class="metric-btn" data-metric="heap_usage">ヒープメモリ使用率</button>
+              <button class="metric-btn active" data-metric="sys_cpu" data-i18n="metric.sys_cpu">システムCPU</button>
+              <button class="metric-btn" data-metric="heap_usage" data-i18n="metric.heap_usage">ヒープメモリ使用率</button>
             </div>
             <div class="header-controls">
               <div class="ma-toggle-group" id="maToggle">
-                <span class="toggle-label">予測線</span>
+                <span class="toggle-label" data-i18n="capacity.forecast">予測線</span>
                 <button class="toggle-btn active" data-forecast="on">On</button>
                 <button class="toggle-btn" data-forecast="off">Off</button>
               </div>
@@ -257,7 +261,7 @@
           <div class="report-header">
             <span class="sub-catch">CAPACITY ANALYSIS</span>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
-              <h3 class="report-title">増設妥当性診断</h3>
+              <h3 class="report-title" data-i18n="capacity.reportTitle">増設妥当性診断</h3>
               <span id="verdictBadge" class="report-badge badge-success">正常</span>
             </div>
           </div>
@@ -265,7 +269,7 @@
           <!-- Slider for target limit -->
           <div class="slider-group">
             <div class="slider-header">
-              <span>アラート臨界値 (Threshold)</span>
+              <span data-i18n="capacity.thresholdTitle">アラート臨界値 (Threshold)</span>
               <span class="slider-value" id="thresholdValue">80%</span>
             </div>
             <input type="range" id="thresholdSlider" class="custom-slider" min="50" max="95" value="80" step="5">
@@ -274,28 +278,28 @@
           <!-- Statistical Metrics -->
           <div class="analysis-detail-list">
             <div class="detail-item">
-              <span class="detail-label">直近平均使用率</span>
+              <span class="detail-label" data-i18n="capacity.recentAvg">直近平均使用率</span>
               <span class="detail-value" id="currentAvgValue">0%</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">月平均上昇幅 (Trend)</span>
+              <span class="detail-label" data-i18n="capacity.monthlyIncrease">月平均上昇幅 (Trend)</span>
               <span class="detail-value" id="monthlyIncreaseRate">0% / 月</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">臨界値到達予想</span>
+              <span class="detail-label" data-i18n="capacity.limitForecast">臨界値到達予想</span>
               <span class="detail-value" id="expectedLimitDate">予測不能</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">ピーク超過比率 (直近30日)</span>
+              <span class="detail-label" data-i18n="capacity.peakExceed">ピーク超過比率 (直近30日)</span>
               <span class="detail-value" id="peakExceedRatio">0%</span>
             </div>
           </div>
 
           <!-- Diagnostic Conclusion -->
           <div class="verdict-box">
-            <strong>診断レポート</strong>
-            <p id="verdictDescription">
-              データを読み込み中か、十分なデータがありません。イン스턴스를 선택하면 분석이 시작됩니다.
+            <strong data-i18n="capacity.reportCardHeader">診断レポート</strong>
+            <p id="verdictDescription" data-i18n="capacity.defaultDescription">
+              データを読み込み中か、十分なデータがありません。インスタンスを選択すると分析が開始されます。
             </p>
           </div>
         </section>
@@ -304,8 +308,8 @@
     </main>
   </div>
 
-  <!-- Help Popup Modal / script load -->
+  <!-- Language selector engine & sub logic -->
+  <script type="module" src="../src/i18n.js"></script>
   <script type="module" src="../src/capacity.js"></script>
 </body>
-
 </html>

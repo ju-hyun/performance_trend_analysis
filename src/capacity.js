@@ -1,4 +1,5 @@
 import Chart from 'chart.js/auto';
+import { getLang } from './i18n.js';
 
 // 설정 정보 로드
 const PTA_CFG = window.PTA_CONFIG || {};
@@ -465,9 +466,18 @@ function calculateForecast(threshold) {
   const exceedCount = last30Days.filter(v => v >= threshold).length;
   const exceedRatio = (exceedCount / (last30Days.length || 1)) * 100;
 
-  // 4. 임계치 도달 미래 일수 예측
+  // 4. 임계치 도달 미래 일수 예측 및 언어 감지
+  const lang = getLang();
   let daysToLimit = -1;
-  let targetDateStr = '예측 불가';
+  let targetDateStr = '';
+  
+  if (lang === 'ko') {
+    targetDateStr = '예측 불가';
+  } else if (lang === 'en') {
+    targetDateStr = 'Unpredictable';
+  } else {
+    targetDateStr = '予測不可';
+  }
   
   if (slope > 0) {
     const limitIndex = (threshold - intercept) / slope;
@@ -478,18 +488,21 @@ function calculateForecast(threshold) {
       targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
     } else {
       daysToLimit = 0; // 이미 돌파
-      targetDateStr = '임계치 도달 완료';
+      targetDateStr = lang === 'ko' ? '임계치 도달 완료' : lang === 'en' ? 'Threshold Reached' : 'しきい値到達済み';
     }
   } else {
-    targetDateStr = '도달 예상 없음 (안정)';
+    targetDateStr = lang === 'ko' ? '도달 예상 없음 (안정)' : lang === 'en' ? 'No reach expected (Stable)' : '到達予想なし (安定)';
   }
 
   // 5. UI 값 반영
   currentAvgDisplay.textContent = `${currentAvg.toFixed(1)}%`;
-  monthlyIncreaseDisplay.textContent = `${monthlySlope >= 0 ? '+' : ''}${monthlySlope.toFixed(2)}% / 月`;
+  
+  const unitSlope = lang === 'ko' ? '/ 월' : lang === 'en' ? '/ month' : '/ 月';
+  monthlyIncreaseDisplay.textContent = `${monthlySlope >= 0 ? '+' : ''}${monthlySlope.toFixed(2)}% ${unitSlope}`;
   
   if (daysToLimit > 0) {
-    expectedLimitDisplay.textContent = `${daysToLimit}일 후 (${targetDateStr})`;
+    const limitSuffix = lang === 'ko' ? '일 후' : lang === 'en' ? 'days later' : '日後';
+    expectedLimitDisplay.textContent = `${daysToLimit}${limitSuffix} (${targetDateStr})`;
     expectedLimitDisplay.style.color = daysToLimit <= 90 ? '#f87171' : 'var(--text-primary)';
   } else {
     expectedLimitDisplay.textContent = targetDateStr;
@@ -499,27 +512,64 @@ function calculateForecast(threshold) {
 
   // 6. 증설 타당성 진단 리포트 출력
   let status = 'normal';
-  let badgeText = '안정';
+  let badgeText = '';
   let description = '';
 
-  const metricName = currentMetric === 'sys_cpu' ? 'CPU 사용률' : '메모리 사용률';
+  let metricName = '';
+  if (currentMetric === 'sys_cpu') {
+    metricName = lang === 'ko' ? 'CPU 사용률' : lang === 'en' ? 'CPU Usage' : 'CPU使用率';
+  } else {
+    metricName = lang === 'ko' ? '메모리 사용률' : lang === 'en' ? 'Memory Usage' : 'メモリ使用率';
+  }
 
   if (daysToLimit === 0 || exceedRatio > 20) {
     status = 'danger';
-    badgeText = '증설 시급';
-    description = `인스턴스의 ${metricName}이 이미 한계 임계치(${threshold}%)에 도달했거나 피크 빈도가 매우 높습니다. <strong>즉각적인 시스템 사양(Core, Memory) 증설 혹은 스케일아웃 조치</strong>가 강력히 요구됩니다.`;
+    if (lang === 'ko') {
+      badgeText = '증설 시급';
+      description = `인스턴스의 ${metricName}이 이미 한계 임계치(${threshold}%)에 도달했거나 피크 빈도가 매우 높습니다. <strong>즉각적인 시스템 사양(Core, Memory) 증설 혹은 스케일아웃 조치</strong>가 강력히 요구됩니다.`;
+    } else if (lang === 'en') {
+      badgeText = 'Urgent';
+      description = `The instance's ${metricName} has already reached the alert threshold (${threshold}%) or has high peak frequencies. <strong>Immediate system expansion (Core, Memory) or scale-out</strong> is highly required.`;
+    } else {
+      badgeText = '増設急務';
+      description = `インスタンスの${metricName}がすでに上限しきい値(${threshold}%)に達しているか、ピーク頻度が非常に高い状態です。<strong>即時的なシステムスペック(Core、Memory)の増設やスケールアウト措置</strong>が強く推奨されます。`;
+    }
   } else if (daysToLimit > 0 && daysToLimit <= 90) {
     status = 'warning';
-    badgeText = '주의 (3개월 내)';
-    description = `현재 사용 추세 분석 결과, <strong>앞으로 ${daysToLimit}일 뒤(${targetDateStr})에 ${metricName}이 임계치인 ${threshold}%를 넘어설 것으로 예상</strong>됩니다. 3개월 이내에 점진적인 리소스 증설 계획을 검토하시기 바랍니다.`;
+    if (lang === 'ko') {
+      badgeText = '주의 (3개월 내)';
+      description = `현재 사용 추세 분석 결과, <strong>앞으로 ${daysToLimit}일 뒤(${targetDateStr})에 ${metricName}이 임계치인 ${threshold}%를 넘어설 것으로 예상</strong>됩니다. 3개월 이내에 점진적인 리소스 증설 계획을 검토하시기 바랍니다.`;
+    } else if (lang === 'en') {
+      badgeText = 'Warning (<3m)';
+      description = `Based on current trend analysis, <strong>${metricName} is expected to exceed the threshold of ${threshold}% in ${daysToLimit} days (${targetDateStr})</strong>. Please review plans for gradual capacity expansion within 3 months.`;
+    } else {
+      badgeText = '注意 (3ヶ月内)';
+      description = `現在の使用傾向を分析した結果、<strong>今後 ${daysToLimit}日後 (${targetDateStr}) に${metricName}がしきい値である ${threshold}% を超える見込み</strong>です。3ヶ月以内に段階的なリソース増設計画の検討を推奨します。`;
+    }
   } else if (daysToLimit > 90 && daysToLimit <= 180) {
     status = 'warning';
-    badgeText = '관찰 요망';
-    description = `사용량이 지속 상승하고 있으나 임계치 돌파까지 약 ${Math.floor(daysToLimit / 30)}개월의 여유가 있습니다. 트렌드를 지속적으로 관찰하되, 급격한 이벤트가 있을 시 대비가 필요합니다.`;
+    if (lang === 'ko') {
+      badgeText = '관찰 요망';
+      description = `사용량이 지속 상승하고 있으나 임계치 돌파까지 약 ${Math.floor(daysToLimit / 30)}개월의 여유가 있습니다. 트렌드를 지속적으로 관찰하되, 급격한 이벤트가 있을 시 대비가 필요합니다.`;
+    } else if (lang === 'en') {
+      badgeText = 'Monitoring';
+      description = `Usage is steadily increasing, but there is a margin of about ${Math.floor(daysToLimit / 30)} months before breaking the threshold. Continue monitoring the trend and prepare for sudden traffic spikes.`;
+    } else {
+      badgeText = '観察要請';
+      description = `使用量は持続的に増加していますが、しきい値突破まで約 ${Math.floor(daysToLimit / 30)}ヶ月の猶予があります。トレンドを継続的に観察し、急激なトラフィックスパイクに備えてください.`;
+    }
   } else {
     status = 'success';
-    badgeText = '안정';
-    description = `리소스 사용량의 장기 추세선이 감소하거나 매우 평탄하여 임계값(${threshold}%)을 초과할 리스크가 적습니다. <strong>현재 상태에서는 증설 타당성이 낮으며</strong>, 모니터링만 유지할 것을 권장합니다.`;
+    if (lang === 'ko') {
+      badgeText = '안정';
+      description = `리소스 사용량의 장기 추세선이 감소하거나 매우 평탄하여 임계값(${threshold}%)을 초과할 리스크가 적습니다. <strong>현재 상태에서는 증설 타당성이 낮으며</strong>, 모니터링만 유지할 것을 권장합니다.`;
+    } else if (lang === 'en') {
+      badgeText = 'Stable';
+      description = `The long-term trend line of resource usage is decreasing or flat, showing low risk of exceeding the threshold (${threshold}%). <strong>Capacity expansion is not justified at this moment</strong>; continuous monitoring is recommended.`;
+    } else {
+      badgeText = '安定';
+      description = `リソース使用量の長期トレンド線が減少傾向にあるか、非常に平坦であるため、しきい値(${threshold}%)を超えるリスクは極めて低いです. <strong>現段階での増設妥当性は低く</strong>、監視の維持のみを推奨します.`;
+    }
   }
 
   // 7. 진단 뱃지 갱신
