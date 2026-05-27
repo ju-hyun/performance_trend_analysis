@@ -728,36 +728,39 @@ function detectAnomaliesInPeriod(data, errorRateTs, targetType) {
 
   rtZs.forEach(item => {
     if (item.z > limit && item.value > 200) { // 최소 기준 완화: 200ms
+      const diagVal = t('anomaly.diagRt');
       anomalies.push({
         time: item.time,
         metric: 'service_time',
         value: item.value,
         z: item.z,
-        diagnosis: t('anomaly.diagRt') || '일시적 응답 지연 (API/DB 병목 의심)'
+        diagnosis: (diagVal !== 'anomaly.diagRt') ? diagVal : '일시적 응답 지연 (API/DB 병목 의심)'
       });
     }
   });
 
   errZs.forEach(item => {
     if (item.z > limit && item.value > 0.1) { // 최소 기준 완화: 0.1%
+      const diagVal = t('anomaly.diagErr');
       anomalies.push({
         time: item.time,
         metric: 'error_rate',
         value: item.value,
         z: item.z,
-        diagnosis: t('anomaly.diagErr') || '애플리케이션 에러 급증 (서버 예외 확인 요망)'
+        diagnosis: (diagVal !== 'anomaly.diagErr') ? diagVal : '애플리케이션 에러 급증 (서버 예외 확인 요망)'
       });
     }
   });
 
   cpuZs.forEach(item => {
     if (item.z > limit && item.value > 60) { // 최소 기준 완화: 60%
+      const diagVal = t('anomaly.diagCpu');
       anomalies.push({
         time: item.time,
         metric: 'sys_cpu',
         value: item.value,
         z: item.z,
-        diagnosis: t('anomaly.diagCpu') || '시스템 자원 임계치 도달 (자원 경합)'
+        diagnosis: (diagVal !== 'anomaly.diagCpu') ? diagVal : '시스템 자원 임계치 도달 (자원 경합)'
       });
     }
   });

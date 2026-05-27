@@ -178,6 +178,7 @@ const DICT = {
   'anomaly.pageTitle': { ja: '異常検出 & アラート分析', ko: '이상 징후 탐지 & Alert 분석', en: 'Anomaly Detection & Alert Analysis' },
   'anomaly.sensitivity': { ja: '検出感度 (Sensitivity)', ko: '탐지 감도 (Sensitivity)', en: 'Detection Sensitivity' },
   'anomaly.totalDetected': { ja: '検出された異常件수', ko: '감지된 이상 건수', en: 'Total Anomalies Detected' },
+  'anomaly.totalDetected': { ja: '検出された異常件数', ko: '감지된 이상 건수', en: 'Total Anomalies Detected' },
   'anomaly.mostAffected': { ja: '最多発生曜日/時間', ko: '최다 발생 요일/시간', en: 'Most Affected Day/Hour' },
   'anomaly.highErrorCount': { ja: '高エラー率検出', ko: '고에러율 감지 횟수', en: 'High Error Rate Incidents' },
   'anomaly.peakVsAvg': { ja: '最大ピーク値 / 平均', ko: '최대 피크값 / 평균', en: 'Peak vs Average Value' },
@@ -185,6 +186,9 @@ const DICT = {
   'anomaly.thDeviation': { ja: '偏差 (Deviation)', ko: '편차 (Deviation)', en: 'Deviation' },
   'anomaly.thDiagnosis': { ja: '根本原因の推定診断 (Root Cause Diagnosis)', ko: '원인 진단 가이드 (Root Cause Diagnosis)', en: 'Root Cause Diagnosis' },
   'anomaly.defaultDescription': { ja: 'データを読み込み中か、十分なデータがありません。', ko: '데이터를 읽어오는 중이거나 데이터가 부족합니다.', en: 'Loading data or insufficient data available.' },
+  'anomaly.diagRt': { ja: '一時的な応答遅延 (API/DBボトルの疑い)', ko: '일시적 응답 지연 (API/DB 병목 의심)', en: 'Temporary response delay (Suspected API/DB bottleneck)' },
+  'anomaly.diagErr': { ja: 'アプリケーションエラーの急増 (サーバー例外確認が必要)', ko: '애플리케이션 에러 급증 (서버 예외 확인 요망)', en: 'Application error spike (Check server exceptions)' },
+  'anomaly.diagCpu': { ja: 'システムリソース限界到達 (リソース競合)', ko: '시스템 자원 임계치 도달 (자원 경합)', en: 'System resource threshold reached (Resource contention)' },
 
   // --- Executive Performance Report page ---
   'report.pageTitle': { ja: '経営向け総合性能レポート', ko: '경영진 보고용 종합 성능 리포트', en: 'Executive Performance Report' },
