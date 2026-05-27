@@ -224,6 +224,7 @@ function renderHierarchicalSelector() {
   container.innerHTML = '';
 
   currentSelectedPath.forEach((item, index) => {
+    // Add separator if not the first item
     if (index > 0) {
       const sep = document.createElement('div');
       sep.className = 'breadcrumb-separator';
@@ -234,6 +235,7 @@ function renderHierarchicalSelector() {
     const breadcrumb = document.createElement('div');
     breadcrumb.className = 'breadcrumb-item';
 
+    // Icon (Cube style)
     const icon = document.createElement('span');
     icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>`;
 
@@ -243,6 +245,7 @@ function renderHierarchicalSelector() {
     breadcrumb.appendChild(icon);
     breadcrumb.appendChild(text);
 
+    // Dropdown arrow for groups
     if (item.type === 'group' || index === currentSelectedPath.length - 1) {
       const arrow = document.createElement('span');
       arrow.style.marginLeft = '4px';
@@ -253,90 +256,121 @@ function renderHierarchicalSelector() {
 
     breadcrumb.addEventListener('click', (e) => {
       e.stopPropagation();
-      showSelectorDropdown(index, breadcrumb);
+      
+      const oldPopover = document.getElementById('hierarchicalSelectorPopup');
+      if (oldPopover) {
+        const wasOpenForThis = oldPopover.dataset.breadcrumbIndex === String(index);
+        oldPopover.remove();
+        if (wasOpenForThis) return;
+      }
+
+      let levelItems = domainTree;
+      const basePath = currentSelectedPath.slice(0, index);
+      for (let i = 0; i < index; i++) {
+        const found = levelItems.find(n => n.name === currentSelectedPath[i].name);
+        if (found) levelItems = found.children;
+      }
+
+      const popover = createPopover(levelItems, (selectedPath) => {
+        const finalPath = [...basePath, ...selectedPath];
+        const lastSelected = finalPath[finalPath.length - 1];
+
+        if (lastSelected.type === 'domain') {
+          updateSelectedPath(finalPath);
+          renderHierarchicalSelector();
+        } else {
+          // Find first domain in selected subgroup
+          // We need to look into the node tree to find it
+          let targetNode = domainTree;
+          for (let i = 0; i < finalPath.length; i++) {
+            const found = targetNode.find(n => n.name === finalPath[i].name);
+            if (found) targetNode = (found.type === 'group') ? found.children : [found];
+          }
+          const firstInGroup = findFirstDomain(targetNode, finalPath);
+          if (firstInGroup) {
+            updateSelectedPath(firstInGroup.path);
+            renderHierarchicalSelector();
+          }
+        }
+      }, 0);
+
+      popover.id = 'hierarchicalSelectorPopup';
+      popover.dataset.breadcrumbIndex = String(index);
+      popover.style.position = 'absolute';
+      
+      const rect = breadcrumb.getBoundingClientRect();
+      popover.style.top = `${rect.bottom + window.scrollY + 6}px`;
+      popover.style.left = `${rect.left + window.scrollX}px`;
+
+      document.body.appendChild(popover);
+      setTimeout(() => popover.classList.add('active'), 0);
     });
 
     container.appendChild(breadcrumb);
   });
 }
 
-// 계층 드롭다운 구현
-function showSelectorDropdown(pathIndex, element) {
-  // 기존 드롭다운 닫기
-  const oldDropdown = document.getElementById('selectorDropdownPopup');
-  if (oldDropdown) oldDropdown.remove();
+function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
+  const popover = document.createElement('div');
+  popover.className = 'selector-popover';
+  if (level > 0) popover.classList.add('submenu');
 
-  const dropdown = document.createElement('div');
-  dropdown.id = 'selectorDropdownPopup';
-  dropdown.className = 'dropdown-popup-custom';
-  dropdown.style.position = 'absolute';
-  dropdown.style.background = 'rgba(15, 23, 42, 0.95)';
-  dropdown.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-  dropdown.style.borderRadius = '12px';
-  dropdown.style.padding = '8px 0';
-  dropdown.style.zIndex = '1000';
-  dropdown.style.minWidth = '180px';
-  dropdown.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.5)';
-  dropdown.style.backdropFilter = 'blur(10px)';
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'popover-item';
+    if (item.children && item.children.length > 0) el.classList.add('has-children');
 
-  // 위치 설정
-  const rect = element.getBoundingClientRect();
-  dropdown.style.top = `${rect.bottom + window.scrollY + 6}px`;
-  dropdown.style.left = `${rect.left + window.scrollX}px`;
+    // Path including current item
+    const itemPath = [...currentLevelPath, { id: item.id, name: item.name, type: item.type }];
 
-  // 노드 탐색
-  let targetNodes = domainTree;
-  for (let i = 0; i < pathIndex; i++) {
-    const pathItem = currentSelectedPath[i];
-    const foundGroup = targetNodes.find(n => n.name === pathItem.name && n.type === 'group');
-    if (foundGroup) targetNodes = foundGroup.children;
-  }
+    el.innerHTML = `
+      <div class="popover-item-content">
+        <span class="popover-item-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        </span>
+        <span>${item.name}</span>
+      </div>
+    `;
 
-  targetNodes.forEach(node => {
-    const itemEl = document.createElement('div');
-    itemEl.style.padding = '8px 16px';
-    itemEl.style.cursor = 'pointer';
-    itemEl.style.fontSize = '0.85rem';
-    itemEl.style.color = '#e2e8f0';
-    itemEl.style.transition = 'background 0.2s';
-    itemEl.textContent = node.name;
-
-    itemEl.addEventListener('mouseenter', () => {
-      itemEl.style.background = 'rgba(255, 255, 255, 0.08)';
-    });
-    itemEl.addEventListener('mouseleave', () => {
-      itemEl.style.background = 'transparent';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onSelect(itemPath);
+      const rootPopover = document.getElementById('hierarchicalSelectorPopup');
+      if (rootPopover) rootPopover.remove();
     });
 
-    itemEl.addEventListener('click', () => {
-      const nextPath = currentSelectedPath.slice(0, pathIndex);
-      nextPath.push({ id: node.id, name: node.name, type: node.type });
-
-      if (node.type === 'group') {
-        const firstDomain = findFirstDomain(node.children, nextPath);
-        if (firstDomain) {
-          updateSelectedPath(firstDomain.path);
+    if (item.type === 'group' && item.children && item.children.length > 0) {
+      let submenu = null;
+      const showSubmenu = () => {
+        if (!submenu) {
+          submenu = createPopover(item.children, onSelect, level + 1, itemPath);
+          el.appendChild(submenu);
         }
-      } else {
-        updateSelectedPath(nextPath);
-      }
-      renderHierarchicalSelector();
-      dropdown.remove();
-    });
-
-    dropdown.appendChild(itemEl);
+        submenu.classList.add('active');
+        submenu.style.position = 'absolute';
+        submenu.style.left = '100.2%';
+        submenu.style.top = '-6px';
+      };
+      const hideSubmenu = () => { if (submenu) submenu.classList.remove('active'); };
+      el.addEventListener('mouseenter', showSubmenu);
+      el.addEventListener('mouseleave', hideSubmenu);
+    }
+    popover.appendChild(el);
   });
 
-  document.body.appendChild(dropdown);
-
-  // 외부 클릭 시 닫기
-  const closeDropdown = (e) => {
-    if (!dropdown.contains(e.target) && !element.contains(e.target)) {
-      dropdown.remove();
-      document.removeEventListener('click', closeDropdown);
-    }
-  };
-  setTimeout(() => document.addEventListener('click', closeDropdown), 10);
+  if (level === 0) {
+    const closeHandler = (e) => {
+      if (!popover.contains(e.target) && !e.target.closest('.breadcrumb-item')) {
+        popover.classList.remove('active');
+        setTimeout(() => {
+          if (popover.parentNode) popover.remove();
+        }, 200);
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    document.addEventListener('click', closeHandler);
+  }
+  return popover;
 }
 
 // 1년 성능 데이터 로드
