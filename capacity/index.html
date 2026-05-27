@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="../pta/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../pta/config.js"></script>
+  <title>リソース増設予測 & 妥当性分析</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
+    rel="stylesheet" crossorigin />
+  <!-- D3.js & Chart.js -->
+  <script src="https://d3js.org/d3.v7.min.js" crossorigin></script>
+  <link rel="stylesheet" href="../src/style.css">
+  <style>
+    /* 신규 기능 전용 프리미엄 스타일 */
+    .capacity-container {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .report-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 1.75rem;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .report-header {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1rem;
+    }
+
+    .report-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .report-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-warning {
+      background: rgba(250, 204, 21, 0.15);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .badge-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 16px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .slider-value {
+      font-weight: 700;
+      color: var(--accent-color);
+    }
+
+    .custom-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+      accent-color: var(--accent-color);
+    }
+
+    .analysis-detail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .detail-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .detail-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .verdict-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 1.25rem;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .verdict-box strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    /* Back Button */
+    .back-btn-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .back-link:hover {
+      color: var(--accent-color);
+    }
+
+    @media (max-width: 1024px) {
+      .capacity-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <main class="main-content">
+      <!-- Loading Overlay -->
+      <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loader-content">
+          <div class="premium-spinner"></div>
+          <p class="loading-text">データロード中...</p>
+        </div>
+      </div>
+
+      <div class="back-btn-container">
+        <a href="../" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          実験スペースに戻る
+        </a>
+      </div>
+
+      <!-- Filters Section -->
+      <section class="filters-card">
+        <div class="filter-group domain-filter-group">
+          <label>ドメイン</label>
+          <div id="hierarchicalDomainSelector" class="hierarchical-selector">
+            <div class="breadcrumb-container" id="breadcrumbContainer">
+              <div class="breadcrumb-item loading">データロード中...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group instance-filter-group" id="instanceFilterArea">
+          <label>対象インスタンス</label>
+          <select id="instanceSelect" class="form-select">
+            <option value="">全体インスタンス</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <!-- Help Button -->
+          <button id="capacityHelpBtn" class="help-btn-circle" title="分析ヘルプ">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Layout Grid -->
+      <div class="capacity-container">
+        <!-- Left: Forecasting Chart -->
+        <section class="chart-card single-chart-card">
+          <div class="chart-header">
+            <div class="metrics-toggle" id="metricsToggle">
+              <button class="metric-btn active" data-metric="sys_cpu">システムCPU</button>
+              <button class="metric-btn" data-metric="heap_usage">ヒープメモリ使用率</button>
+            </div>
+            <div class="header-controls">
+              <div class="ma-toggle-group" id="maToggle">
+                <span class="toggle-label">予測線</span>
+                <button class="toggle-btn active" data-forecast="on">On</button>
+                <button class="toggle-btn" data-forecast="off">Off</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="capacityChart"></canvas>
+          </div>
+        </section>
+
+        <!-- Right: Forecasting & Capacity Report -->
+        <section class="report-card">
+          <div class="report-header">
+            <span class="sub-catch">CAPACITY ANALYSIS</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+              <h3 class="report-title">増設妥当性診断</h3>
+              <span id="verdictBadge" class="report-badge badge-success">正常</span>
+            </div>
+          </div>
+
+          <!-- Slider for target limit -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>アラート臨界値 (Threshold)</span>
+              <span class="slider-value" id="thresholdValue">80%</span>
+            </div>
+            <input type="range" id="thresholdSlider" class="custom-slider" min="50" max="95" value="80" step="5">
+          </div>
+
+          <!-- Statistical Metrics -->
+          <div class="analysis-detail-list">
+            <div class="detail-item">
+              <span class="detail-label">直近平均使用率</span>
+              <span class="detail-value" id="currentAvgValue">0%</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">月平均上昇幅 (Trend)</span>
+              <span class="detail-value" id="monthlyIncreaseRate">0% / 月</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">臨界値到達予想</span>
+              <span class="detail-value" id="expectedLimitDate">予測不能</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">ピーク超過比率 (直近30日)</span>
+              <span class="detail-value" id="peakExceedRatio">0%</span>
+            </div>
+          </div>
+
+          <!-- Diagnostic Conclusion -->
+          <div class="verdict-box">
+            <strong>診断レポート</strong>
+            <p id="verdictDescription">
+              データを読み込み中か、十分なデータがありません。イン스턴스를 선택하면 분석이 시작됩니다.
+            </p>
+          </div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Help Popup Modal / script load -->
+  <script type="module" src="../src/capacity.js"></script>
+</body>
+
+</html>

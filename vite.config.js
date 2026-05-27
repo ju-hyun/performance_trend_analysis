@@ -30,7 +30,9 @@ export default defineConfig(() => {
                 input: {
                     main: 'index.html',
                     pta: 'pta/index.html',
-                    help: 'pta/help.html'
+                    help: 'pta/help.html',
+                    capacity: 'capacity/index.html',
+                    tuning: 'tuning/index.html'
                 },
                 output: {
                     entryFileNames: 'pta/asserts/[name]-[hash].js',

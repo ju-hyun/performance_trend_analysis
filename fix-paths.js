@@ -7,7 +7,9 @@ const __dirname = dirname(__filename);
 
 const files = [
     join(__dirname, 'dist/pta/index.html'),
-    join(__dirname, 'dist/pta/help.html')
+    join(__dirname, 'dist/pta/help.html'),
+    join(__dirname, 'dist/capacity/index.html'),
+    join(__dirname, 'dist/tuning/index.html')
 ];
 
 files.forEach(file => {
