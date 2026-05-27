@@ -1627,3 +1627,168 @@ body {
   font-weight: 700;
   color: var(--text-primary);
 }
+
+/* JENNIFER Design System Buttons & Icons */
+.js-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  user-select: none;
+  outline: none;
+  gap: 8px;
+  padding: 8px 16px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+/* Shapes */
+.js-btn-rect {
+  border-radius: 4px;
+}
+.js-btn-circle {
+  border-radius: 50%;
+  padding: 8px;
+}
+.js-btn-pill {
+  border-radius: 9999px;
+}
+
+/* Sizes */
+.js-btn-large {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+}
+.js-btn-small {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+/* Button Variants */
+.js-btn-primary-filled {
+  background-color: #1e3a8a; /* Navy/Dark Blue representing Jennifer APM theme */
+  color: #ffffff;
+}
+.js-btn-primary-filled:hover {
+  background-color: #172554;
+}
+
+.js-btn-primary-text {
+  color: #1e3a8a;
+  background-color: transparent;
+}
+.js-btn-primary-text:hover {
+  background-color: rgba(30, 58, 138, 0.06);
+}
+
+.js-btn-outlined {
+  border-color: var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+}
+.js-btn-outlined:hover {
+  background-color: var(--sidebar-active);
+  border-color: #94a3b8;
+}
+.js-btn-outlined:active {
+  background-color: #cbd5e1;
+}
+
+.js-btn-text {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--text-primary);
+}
+.js-btn-text:hover {
+  background-color: var(--sidebar-active);
+}
+.js-btn-text:active {
+  background-color: #cbd5e1;
+}
+
+.js-btn-error-filled {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+.js-btn-error-filled:hover {
+  background-color: #dc2626;
+}
+
+.js-btn-error-text {
+  color: #ef4444;
+  background-color: transparent;
+}
+.js-btn-error-text:hover {
+  background-color: rgba(239, 68, 68, 0.06);
+}
+
+/* Icons */
+.js-icon {
+  fill: currentColor;
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.js-icon-stroke {
+  stroke: currentColor;
+  fill: none;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Tooltip Styling */
+.js-tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.js-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+.js-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.js-tooltip-container:hover .js-tooltip,
+.js-tooltip-container.tooltip-active .js-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px);
+}

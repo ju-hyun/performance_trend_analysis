@@ -203,6 +203,8 @@ const DICT = {
   'report.anomalyTitle': { ja: '異常検出検出履歴概要', ko: '이상 징후 감지 이력 요약', en: 'Anomaly Incidents Summary' },
   'report.noAnomalyText': { ja: '分析期間中、特異な性能異常は検出されませんでした。', ko: '분석 기간 내에 특이한 성능 이상 징후가 감지되지 않았습니다.', en: 'No significant performance anomalies were detected during the analysis period.' },
   'report.generating': { ja: 'レポートを分析及び生成中...', ko: '성능 데이터를 분석하여 리포트를 생성하는 중...', en: 'Analyzing performance metrics and generating report...' },
+  'copy': { ja: 'コピー', ko: '복사', en: 'Copy' },
+  'copied': { ja: 'コピー済み', ko: '복사됨', en: 'Copied!' },
 
   // --- Help page ---
   'help.title': {

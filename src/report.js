@@ -13,6 +13,7 @@ let currentSelectedPath = [];
 let dateRange = { start: null, end: null };
 let fpInstance = null;
 let trendChart = null;
+let copyTimeout = null;
 
 // DOM 요소 캐시
 const langSelect = document.getElementById('langSelect');
@@ -27,6 +28,8 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 
 const btnExportPdf = document.getElementById('btnExportPdf');
 const btnExportImg = document.getElementById('btnExportImg');
+const btnCopyOpinion = document.getElementById('btnCopyOpinion');
+const copyTooltip = document.getElementById('copyTooltip');
 
 // 리포트 UI 요소 캐시
 const reportTargetLabel = document.getElementById('reportTargetLabel');
@@ -93,6 +96,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   btnExportImg.addEventListener('click', exportToImage);
+
+  // 4.5. 소견 복사 액션 연동
+  if (btnCopyOpinion) {
+    btnCopyOpinion.addEventListener('click', () => {
+      const textToCopy = opinionComment.textContent || '';
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const tooltipContainer = btnCopyOpinion.closest('.js-tooltip-container');
+        if (tooltipContainer) {
+          tooltipContainer.classList.add('tooltip-active');
+        }
+        if (copyTooltip) {
+          copyTooltip.textContent = t('copied');
+        }
+        btnCopyOpinion.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="js-icon">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+          </svg>
+        `;
+
+        if (copyTimeout) {
+          clearTimeout(copyTimeout);
+        }
+
+        copyTimeout = setTimeout(() => {
+          if (tooltipContainer) {
+            tooltipContainer.classList.remove('tooltip-active');
+          }
+          if (copyTooltip) {
+            copyTooltip.textContent = t('copy');
+          }
+          btnCopyOpinion.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="js-icon">
+              <path fill="currentColor" d="M4 1H16V3H4V17H2V3C2 1.9 2.9 1 4 1Z"></path>
+              <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M8 5H19C20.1 5 21 5.85 21 6.88889V20.1111C21 21.15 20.1 22 19 22H8C6.9 22 6 21.15 6 20.1111V6.88889C6 5.85 6.9 5 8 5ZM19 20H8V7H19V20Z"></path>
+            </svg>
+          `;
+          copyTimeout = null;
+        }, 3000);
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    });
+  }
 
   // 5. 초기 도메인 리스크 로드
   showLoading(true);
