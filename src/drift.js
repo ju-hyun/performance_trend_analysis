@@ -370,6 +370,16 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
   return popover;
 }
 
+// 안전한 메트릭 데이터 호출 Helper
+async function fetchMetricDataSafe(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics) {
+  try {
+    return await fetchMetricData(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics);
+  } catch (err) {
+    console.warn(`[Drift Analysis] Failed to fetch metric ${metrics}:`, err);
+    return [];
+  }
+}
+
 // 시뮬레이터 및 비교 계산 실행
 async function loadData() {
   if (loadingOverlay) loadingOverlay.classList.remove('hidden');
@@ -381,6 +391,10 @@ async function loadData() {
   let realDataB = [];
   let realDataFetched = false;
 
+  let cpuValA = 0, cpuValB = 0;
+  let heapValA = 0, heapValB = 0;
+  let errValA = 0, errValB = 0;
+
   if (domainId) {
     try {
       const startA = formatDateParam(periodADate, false);
@@ -388,14 +402,39 @@ async function loadData() {
       const startB = formatDateParam(periodBDate, false);
       const endB = formatDateParam(periodBDate, true);
 
-      realDataA = await fetchMetricData(domainId, null, 'domain', startA, endA, 60, 'service_time');
-      realDataB = await fetchMetricData(domainId, null, 'domain', startB, endB, 60, 'service_time');
+      const [
+        resTimeA, resTimeB,
+        cpuA, cpuB,
+        heapA, heapB,
+        errA, errB
+      ] = await Promise.all([
+        fetchMetricDataSafe(domainId, null, 'domain', startA, endA, 60, 'service_time'),
+        fetchMetricDataSafe(domainId, null, 'domain', startB, endB, 60, 'service_time'),
+        fetchMetricDataSafe(domainId, null, 'domain', startA, endA, 60, 'sys_cpu'),
+        fetchMetricDataSafe(domainId, null, 'domain', startB, endB, 60, 'sys_cpu'),
+        fetchMetricDataSafe(domainId, null, 'domain', startA, endA, 60, 'heap_usage'),
+        fetchMetricDataSafe(domainId, null, 'domain', startB, endB, 60, 'heap_usage'),
+        fetchMetricDataSafe(domainId, null, 'domain', startA, endA, 60, 'service_err_count'),
+        fetchMetricDataSafe(domainId, null, 'domain', startB, endB, 60, 'service_err_count')
+      ]);
+
+      realDataA = resTimeA;
+      realDataB = resTimeB;
 
       if (realDataA && realDataA.length > 2 && realDataB && realDataB.length > 2) {
         realDataFetched = true;
+        
+        cpuValA = cpuA.length ? (cpuA.reduce((sum, item) => sum + item.value, 0) / cpuA.length) : 0;
+        cpuValB = cpuB.length ? (cpuB.reduce((sum, item) => sum + item.value, 0) / cpuB.length) : 0;
+
+        heapValA = heapA.length ? (heapA.reduce((sum, item) => sum + item.value, 0) / heapA.length) : 0;
+        heapValB = heapB.length ? (heapB.reduce((sum, item) => sum + item.value, 0) / heapB.length) : 0;
+
+        errValA = errA.length ? (errA.reduce((sum, item) => sum + item.value, 0) / errA.length) : 0;
+        errValB = errB.length ? (errB.reduce((sum, item) => sum + item.value, 0) / errB.length) : 0;
       }
     } catch (err) {
-      console.warn('[Drift Analysis] Failed to fetch real response times. Falling back to simulator.', err);
+      console.warn('[Drift Analysis] Failed to fetch real response times.', err);
     }
   }
 
@@ -486,7 +525,7 @@ async function loadData() {
   driftStatusValue.innerHTML = `<span class="drift-status-badge ${statusClass}">${statusText}</span>`;
 
   // 원인 분석 트리 갱신
-  renderDriftCauses(avgDiffVal, driftMs);
+  renderDriftCauses(avgDiffVal, cpuValA, cpuValB, heapValA, heapValB, errValA, errValB);
 
   // 5. 차트 그리기
   renderDriftChart(xRange, distA, distB);
@@ -509,7 +548,7 @@ function logNormalPdf(x, mu, sigma) {
   return coeff * Math.exp(exponent);
 }
 
-function renderDriftCauses(avgDiffVal, driftMs) {
+function renderDriftCauses(avgDiffVal, cpuA, cpuB, heapA, heapB, errA, errB) {
   driftCauseList.innerHTML = '';
 
   const currentLang = getLang();
@@ -522,7 +561,7 @@ function renderDriftCauses(avgDiffVal, driftMs) {
       causes.push({
         icon: '✅',
         title: '정상 오차 범주 내 안정 기동',
-        desc: '기준 기간 대비 응답 속도 분포의 왜곡 현상이 관찰되지 않습니다. 시스템 전반이 극도로 안정된 정적 평형 상태를 유지하고 있습니다.'
+        desc: '기준 기간 대비 응답 속도 분포의 왜곡 현상이 관찰되지 않습니다. 시스템 리소스가 매우 조화롭고 안정된 상태를 유지하고 있습니다.'
       });
     } else if (currentLang === 'ja') {
       causes.push({
@@ -534,67 +573,105 @@ function renderDriftCauses(avgDiffVal, driftMs) {
       causes.push({
         icon: '✅',
         title: 'Normal Variance bounds',
-        desc: 'No response time distribution distortion observed. The overall system remains in a highly stable static equilibrium state.'
+        desc: 'No response time distribution distortion observed. The overall system resource footprint remains stable and balanced.'
       });
     }
   } else {
     // 느려진 상태인 경우 (Drift 발생)
-    const sqlDrift = Math.round(driftMs * 0.6);
-    const gcDrift = Math.round(driftMs * 0.3);
-    const extDrift = Math.round(driftMs - sqlDrift - gcDrift);
+    const cpuDiff = cpuB - cpuA;
+    const heapDiff = heapB - heapA;
+    const errDiff = errB - errA;
 
-    if (currentLang === 'ko') {
-      causes.push({
-        icon: '💾',
-        title: `데이터베이스 인덱스 파편화 및 쿼리 퇴화 (Suspected SQL Drift: +${sqlDrift}ms)`,
-        desc: `전체 응답시간 지연 요인의 60%가 SQL 실행 시간 증가에서 발견되었습니다. 테이블 로우 수가 점진적으로 누적되면서 주요 인덱스의 탐색 효율이 낮아진 것으로 보입니다. 주기적인 DB Optimizer 통계 갱신 및 인덱스 리빌드(Rebuild)를 추천합니다.`
-      });
-      causes.push({
-        icon: '⚙️',
-        title: `JVM GC Stop-the-World 일시 누적 (Suspected GC Drift: +${gcDrift}ms)`,
-        desc: `가비지 컬렉션(GC) 이후 회수되는 힙 메모리 파편화로 인해 미세한 일시 정지 시간이 장기적으로 평균 +${gcDrift}ms 증가했습니다. JVM GC 옵션 튜닝을 검토하십시오.`
-      });
-      if (extDrift > 0) {
+    let hasRootCause = false;
+
+    if (cpuDiff > 2) {
+      hasRootCause = true;
+      if (currentLang === 'ko') {
         causes.push({
-          icon: '🔌',
-          title: `외부 연동 API 네트워크 지연 (Suspected API Drift: +${extDrift}ms)`,
-          desc: `제 3사 인증 결제 등 아웃바운드 HTTP 연동 부분의 응답 대기 시간이 미세하게 누적되었습니다.`
+          icon: '⚡',
+          title: `시스템 CPU 부하 상승에 따른 연산 지연 (Suspected CPU Drift: +${cpuDiff.toFixed(1)}%)`,
+          desc: `기준 기간 대비 CPU 사용량이 평균 ${cpuDiff.toFixed(1)}%p 증가했습니다. 애플리케이션 연산 작업 증가, 비효율적인 루프 실행 또는 특정 쓰레드의 경합이 원인일 수 있습니다.`
+        });
+      } else if (currentLang === 'ja') {
+        causes.push({
+          icon: '⚡',
+          title: `CPU使用率上昇による演算遅延 (CPUドリフトの疑い: +${cpuDiff.toFixed(1)}%)`,
+          desc: `基準期間と比較して平均CPU使用率が ${cpuDiff.toFixed(1)}%p 増加しました。アプリケーションの演算処理の増加、非効率なループ、またはスレッド競합이 원인일 수 있습니다.`
+        });
+      } else {
+        causes.push({
+          icon: '⚡',
+          title: `Compute Latency via CPU Overhead (Suspected CPU Drift: +${cpuDiff.toFixed(1)}%)`,
+          desc: `Average system CPU usage increased by ${cpuDiff.toFixed(1)}%p. This suggests computational expansion, inefficient loop execution, or thread contention issues.`
         });
       }
-    } else if (currentLang === 'ja') {
-      causes.push({
-        icon: '💾',
-        title: `DBインデックス断片化とクエリ性能低下 (SQL影響度: +${sqlDrift}ms)`,
-        desc: `遅延要因の60%がSQL実行時間の増加に起因しています。テーブルレコード数の累積に伴い、主要インデックスの検索効率が低下した可能性があります。定期的な統計情報の更新およびインデックス再構築(Rebuild)を推奨します。`
-      });
-      causes.push({
-        icon: '⚙️',
-        title: `JVM GC Stop-the-Worldの蓄積 (GC影響度: +${gcDrift}ms)`,
-        desc: `ガベージコレクション(GC)後のメモリ断片化により、一時停止時間が長期平均で +${gcDrift}ms 増加しています。JVM GCチューニングの検討をお勧めします。`
-      });
-      if (extDrift > 0) {
+    }
+
+    if (heapDiff > 5) {
+      hasRootCause = true;
+      if (currentLang === 'ko') {
         causes.push({
-          icon: '🔌',
-          title: `外部連携APIのネットワーク遅延 (外部連携影響度: +${extDrift}ms)`,
-          desc: `サードパーティ認証や決済などのアウトバウンドHTTP連携で、応答待機時間がわずかに累積しています。`
+          icon: '⚙️',
+          title: `JVM 힙 메모리 사용량 증가 및 GC 지연 (Suspected GC/Heap Drift: +${heapDiff.toFixed(1)}%)`,
+          desc: `기준 기간 대비 JVM 힙 사용량이 평균 ${heapDiff.toFixed(1)}%p 증가했습니다. 불필요하게 오래 유지되는 객체로 인해 가비지 컬렉션(GC)의 정지 시간(Stop-the-World)이 길어졌을 가능성이 높습니다.`
+        });
+      } else if (currentLang === 'ja') {
+        causes.push({
+          icon: '⚙️',
+          title: `JVMヒープ使用量増加とGC遅延 (GC/ヒープドリフトの疑い: +${heapDiff.toFixed(1)}%)`,
+          desc: `基準期間と比較して平均JVMヒープ使用率が ${heapDiff.toFixed(1)}%p 増加しました。不要に保持されるオブジェクトの増加により、ガベージコレクション(GC)の一時停止時間(Stop-the-World)が長くなった可能性があります。`
+        });
+      } else {
+        causes.push({
+          icon: '⚙️',
+          title: `JVM Heap Usage Expansion & GC Latency (Suspected GC/Heap Drift: +${heapDiff.toFixed(1)}%)`,
+          desc: `Average JVM Heap usage expanded by ${heapDiff.toFixed(1)}%p. A high heap footprint often increases GC Stop-the-World pause times, shifting response distribution to the right.`
         });
       }
-    } else {
-      causes.push({
-        icon: '💾',
-        title: `Database Index Fragmentation (Suspected SQL Drift: +${sqlDrift}ms)`,
-        desc: `60% of the response delay is found in SQL execution time expansion. As table row count accumulates over time, search efficiency has degraded. Periodic database statistic updates and index rebuilds are recommended.`
-      });
-      causes.push({
-        icon: '⚙️',
-        title: `JVM GC Stop-the-World accumulation (Suspected GC Drift: +${gcDrift}ms)`,
-        desc: `Miniscule pauses from Heap fragmentation during GC runs have increased response latency by an average of +${gcDrift}ms. Consider review of JVM GC tuning flags.`
-      });
-      if (extDrift > 0) {
+    }
+
+    if (errDiff > 1) {
+      hasRootCause = true;
+      if (currentLang === 'ko') {
+        causes.push({
+          icon: '🚨',
+          title: `트랜잭션 오류 발생량 증가 (Suspected Error Drift: +${errDiff.toFixed(1)}/hr)`,
+          desc: `시간당 평균 에러 발생 건수가 ${errDiff.toFixed(1)}건 증가했습니다. 예외 처리(Exception Handling) 오버헤드나 오류 복구 로직 실행으로 인해 응답 지연이 심화될 수 있습니다.`
+        });
+      } else if (currentLang === 'ja') {
+        causes.push({
+          icon: '🚨',
+          title: `トランザクションエラー発生数の増加 (エラードリフトの疑い: +${errDiff.toFixed(1)}/件/時)`,
+          desc: `1時間あたりの平均エラー件数が ${errDiff.toFixed(1)} 件増加しました。例外処理(Exception Handling)のオーバーヘッドやエラー回復ロジックの実行が遅延を引き起こしている可能性があります。`
+        });
+      } else {
+        causes.push({
+          icon: '🚨',
+          title: `Transaction Error Volume Increase (Suspected Error Drift: +${errDiff.toFixed(1)}/hr)`,
+          desc: `Average hourly transaction error count increased by ${errDiff.toFixed(1)}. Overhead from frequent exception parsing or retry recovery logic may have degraded performance.`
+        });
+      }
+    }
+
+    // 만약 리소스 변화나 에러가 적음에도 드리프트가 높다면 DB 대기 / 외부 대기 지연으로 판정
+    if (!hasRootCause) {
+      if (currentLang === 'ko') {
         causes.push({
           icon: '🔌',
-          title: `External Third-party Latency (Suspected API Drift: +${extDrift}ms)`,
-          desc: `Slight latency buildup observed in outbound HTTP API calls to external authentication/payment gateways.`
+          title: `데이터베이스 락 및 외부 연동 대기 지연 (Suspected Wait-time Drift)`,
+          desc: `시스템 리소스(CPU/Heap) 및 에러 변화는 미미하지만 응답 지연이 관찰됩니다. 데이터베이스 락(Lock) 대기, 슬로우 쿼리, 또는 외부 제3사 API 연동 지연으로 인한 블로킹 시간이 지연을 주도하고 있을 가능성이 큽니다.`
+        });
+      } else if (currentLang === 'ja') {
+        causes.push({
+          icon: '🔌',
+          title: `データベースロックおよび外部連携の待機遅延 (待機時間ドリフトの疑い)`,
+          desc: `システムリソース(CPU/Heap)およびエラー率の変動は極めて低いですが、応答遅延が検出されています。データベースのロック待機、スロークエリ、または外部API連携のタイムアウトなどのブロッキング時間が影響している可能性が高いです。`
+        });
+      } else {
+        causes.push({
+          icon: '🔌',
+          title: `Database Lock or External Service Blocking (Suspected Wait-time Drift)`,
+          desc: `System resource metrics (CPU/Heap) and error rates are stable, but overall response times have shifted. This pattern strongly indicates DB lock waiting, slow database queries, or blocking outbound HTTP API delays.`
         });
       }
     }
