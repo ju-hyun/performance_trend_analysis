@@ -147,7 +147,7 @@ const DICT = {
   // --- Tuning comparison page ---
   'tuning.pageTitle': { ja: '性能改善の根拠 & 効果分析', ko: '성능 개선의 근거 & 효과 분석', en: 'Performance Tuning & Comparison' },
   'tuning.beforePeriod': { ja: '改善前 (Before) 期間:', ko: '개선 전 (Before) 기간:', en: 'Before Tuning Period:' },
-  'tuning.afterPeriod': { ja: '改善後 (After) 期間:', ko: '개선 후 (After) 期間:', en: 'After Tuning Period:' },
+  'tuning.afterPeriod': { ja: '改善後 (After) 期間:', ko: '개선 후 (After) 기간:', en: 'After Tuning Period:' },
   'tuning.avgResponseTimeCard': { ja: '平均応答時間 (Response Time)', ko: '평균 응답시간 (Response Time)', en: 'Avg Response Time' },
   'tuning.avgTpsCard': { ja: '平均 TPS', ko: '평균 TPS', en: 'Avg TPS' },
   'tuning.errRateCard': { ja: 'エラー率 (Error Rate)', ko: '에러율 (Error Rate)', en: 'Error Rate' },
