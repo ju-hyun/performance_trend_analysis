@@ -6,7 +6,7 @@
   <link rel="icon" type="image/svg+xml" href="../pta/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="../pta/config.js"></script>
-  <title>性能改善の根拠 & 効果分析</title>
+  <title data-i18n="tuning.pageTitle">性能改善の根拠 & 効果分析</title>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-jp.min.css"
     rel="stylesheet" crossorigin />
   <!-- D3.js & Flatpickr CSS -->
@@ -221,6 +221,69 @@
       }
 
       .tuning-report-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      /* 백 링크 & 언어 선택기 모바일 대응 */
+      .back-btn-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem;
+      }
+      
+      .back-link {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.75rem;
+      }
+      
+      .lang-switcher {
+        width: auto !important;
+        min-width: 90px;
+        font-size: 0.8rem;
+        height: 30px;
+      }
+
+      /* 날짜 선택기 모바일 레이아웃 최적화 */
+      .period-selectors {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1.25rem 1rem;
+      }
+
+      .period-selectors > .divider-dot {
+        display: none; /* 세로 구분 바 '|' 숨김 */
+      }
+
+      .datepicker-wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
+      .datepicker-wrapper label {
+        min-width: 0;
+        width: 100%;
+        margin-bottom: 0.25rem;
+      }
+
+      .flatpickr-input-custom {
+        flex: 1;
+        min-width: 100px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tuning-grid {
         grid-template-columns: 1fr;
       }
     }

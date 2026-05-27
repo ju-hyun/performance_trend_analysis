@@ -64,13 +64,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 1. 기본 기간 설정 (Before: 6개월 전 10일간, After: 최근 10일간)
+  // 1. 기본 기간 설정
+  // - 개선 후 (After): 이번 달 1일부터 오늘까지
+  // - 개선 전 (Before): 이전 달 1일부터 이번 달 일수(오늘 날짜)만큼의 기간 (이전 달 최대 일수 제한 적용)
   const today = new Date();
   
-  const bStart = new Date(today.getTime() - 180 * 24 * 3600000);
-  const bEnd = new Date(bStart.getTime() + 10 * 24 * 3600000);
-  const aStart = new Date(today.getTime() - 11 * 24 * 3600000);
-  const aEnd = new Date(today.getTime() - 1 * 24 * 3600000);
+  const aStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const aEnd = new Date(today);
+
+  const days = today.getDate();
+  const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const prevYear = prevMonthDate.getFullYear();
+  const prevMonth = prevMonthDate.getMonth();
+  const lastDayOfPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+  const prevEndDay = Math.min(days, lastDayOfPrevMonth);
+
+  const bStart = new Date(prevYear, prevMonth, 1);
+  const bEnd = new Date(prevYear, prevMonth, prevEndDay);
 
   beforeStartInput.value = dateToString(bStart);
   beforeEndInput.value = dateToString(bEnd);

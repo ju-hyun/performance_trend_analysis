@@ -317,6 +317,37 @@
             .main-catch {
                 font-size: 1.8rem;
             }
+
+            /* 모바일 헤더 언어선택기 겹침 방지 */
+            .hero {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                position: relative;
+            }
+
+            .lang-switcher {
+                position: static;
+                align-self: flex-end;
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* 480px 이하 모바일 레이아웃 대응 */
+        @media (max-width: 480px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+                margin-bottom: 4rem;
+            }
+
+            .main-catch {
+                font-size: 1.5rem;
+            }
+
+            .sub-catch {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>

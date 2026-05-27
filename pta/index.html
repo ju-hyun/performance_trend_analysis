@@ -27,13 +27,29 @@
         </div>
       </div>
 
+      <div class="back-btn-container" style="display: flex; justify-content: space-between; align-items: center;">
+        <a href="../" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span data-i18n="backToLab">実験スペースに戻る</span>
+        </a>
+        <select id="langSelect" class="form-select lang-switcher" aria-label="Language">
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+        </select>
+      </div>
+
       <!-- Filters Section -->
       <section class="filters-card">
         <div class="filter-group domain-filter-group">
           <label data-i18n="filter.domain">ドメイン</label>
           <div id="hierarchicalDomainSelector" class="hierarchical-selector">
             <div class="breadcrumb-container" id="breadcrumbContainer">
-              <div class="breadcrumb-item loading" data-i18n="loading">データロード中...</div>
+              <div class="breadcrumb-item loading" data-i18n="loading">データロード중...</div>
             </div>
           </div>
         </div>
@@ -61,11 +77,6 @@
         </div>
 
         <div class="filter-actions">
-          <select id="langSelect" class="form-select lang-select" aria-label="Language">
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="en">English</option>
-          </select>
           <button id="mainHelpBtn" class="help-btn-circle" data-i18n-title="help" title="ヘルプ">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
