@@ -450,7 +450,21 @@ async function loadData() {
     shiftAmountValue.textContent = '-';
     driftStatusValue.innerHTML = `<span class="drift-status-badge stable">${t('heatmap.noDataShort')}</span>`;
 
-    driftCauseList.innerHTML = `<div style="text-align: center; padding: 1.5rem; color: var(--text-secondary); font-size: 0.9rem;">${t('heatmap.noData')}</div>`;
+    let noDataMsg = t('heatmap.noData');
+    if (domainId) {
+      const hasA = (realDataA && realDataA.map(item => item.value).filter(val => val > 0).length > 0);
+      const hasB = (realDataB && realDataB.map(item => item.value).filter(val => val > 0).length > 0);
+      
+      if (!hasA && !hasB) {
+        noDataMsg = getLang() === 'ko' ? '두 기간 모두 데이터가 없습니다.' : getLang() === 'ja' ? '両方の期間にデータがありません。' : 'No data in both periods.';
+      } else if (!hasA) {
+        noDataMsg = getLang() === 'ko' ? '기준 기간 (Period A)에 데이터가 없습니다.' : getLang() === 'ja' ? '基準期間 (Period A)にデータがありません。' : 'No data in baseline Period A.';
+      } else if (!hasB) {
+        noDataMsg = getLang() === 'ko' ? '비교 기간 (Period B)에 데이터가 없습니다.' : getLang() === 'ja' ? '比較期間 (Period B)にデータがありません。' : 'No data in comparison Period B.';
+      }
+    }
+
+    driftCauseList.innerHTML = `<div style="text-align: center; padding: 1.5rem; color: var(--text-secondary); font-size: 0.9rem;">${noDataMsg}</div>`;
 
     if (driftChartInstance) {
       driftChartInstance.destroy();
@@ -465,7 +479,7 @@ async function loadData() {
       ctx.fillStyle = '#64748b';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(t('heatmap.noData'), canvas.width / 2, canvas.height / 2);
+      ctx.fillText(noDataMsg, canvas.width / 2, canvas.height / 2);
     }
 
     if (simulatedWarningBanner) {
