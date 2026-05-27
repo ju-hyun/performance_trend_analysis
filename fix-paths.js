@@ -16,10 +16,11 @@ files.forEach(file => {
     if (fs.existsSync(file)) {
         let content = fs.readFileSync(file, 'utf8');
         
-        // 1. "../pta/asserts/"를 "./asserts/"로 변경
-        // 2. "../pta/vite.svg"를 "./vite.svg"로 변경 (Vite가 자동 변환했을 경우 대비)
-        content = content.replace(/\.\.\/pta\/asserts\//g, './asserts/');
-        content = content.replace(/\.\.\/pta\/vite\.svg/g, './vite.svg');
+        // pta 디렉토리 내에 위치한 파일의 경우에만 ../pta/asserts/ -> ./asserts/ 로 보정
+        if (file.includes('dist/pta/')) {
+            content = content.replace(/\.\.\/pta\/asserts\//g, './asserts/');
+            content = content.replace(/\.\.\/pta\/vite\.svg/g, './vite.svg');
+        }
         
         fs.writeFileSync(file, content);
         console.log(`Successfully fixed paths in: ${file}`);
