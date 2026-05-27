@@ -4,6 +4,7 @@ import { t, getLang } from './i18n.js';
 // 설정 정보 로드
 const PTA_CFG = window.PTA_CONFIG || {};
 const DOMAIN_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/domain';
+const API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics';
 const TOKEN = PTA_CFG.TOKEN || '';
 
 // 전역 변수
@@ -17,6 +18,7 @@ let periodBDate = new Date();
 const baselinePicker = document.getElementById('baselinePicker');
 const comparePicker = document.getElementById('comparePicker');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const simulatedWarningBanner = document.getElementById('simulatedWarningBanner');
 
 // KPI 요약 카드 DOM
 const avgDriftValue = document.getElementById('avgDriftValue');
@@ -28,6 +30,80 @@ const driftCauseList = document.getElementById('driftCauseList');
 // Chart.js 스타일 설정
 Chart.defaults.font.family = '"Pretendard JP Variable", "Pretendard JP", sans-serif';
 Chart.defaults.color = "#64748b";
+
+function formatDateParam(date, isEnd = false) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = isEnd ? '24' : '00';
+  return `${y}${m}${d}${h}`;
+}
+
+async function fetchMetricData(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics) {
+  if (!domainId) return [];
+
+  let endpoint;
+  if (!targetId) {
+    endpoint = `${API_BASE}/domain`;
+  } else {
+    endpoint = targetType === 'instance' ? `${API_BASE}/instance` : `${API_BASE}/business`;
+  }
+
+  const url = new URL(endpoint, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  url.searchParams.append('domain_id', domainId);
+
+  if (targetId) {
+    if (targetType === 'instance') {
+      url.searchParams.append('instance_id', targetId);
+    } else {
+      url.searchParams.append('business_id', targetId);
+    }
+  }
+  url.searchParams.append('time_pattern', 'yyyyMMddHH');
+  url.searchParams.append('start_time', startTime);
+  url.searchParams.append('end_time', endTime);
+  url.searchParams.append('interval_minute', intervalMinute);
+  url.searchParams.append('metrics', metrics);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  const data = await response.json();
+  return data.result || [];
+}
+
+function estimateLogNormalParams(data, defaultMedian = 160) {
+  if (!data || data.length < 3) {
+    const mu = Math.log(defaultMedian);
+    const sigma = 0.45;
+    return { mu, sigma };
+  }
+
+  const values = data.map(item => item.value).filter(val => val > 0);
+  if (values.length < 3) {
+    const mu = Math.log(defaultMedian);
+    const sigma = 0.45;
+    return { mu, sigma };
+  }
+
+  const logs = values.map(val => Math.log(val));
+  const mu = logs.reduce((sum, val) => sum + val, 0) / logs.length;
+  
+  let variance = logs.reduce((sum, val) => sum + Math.pow(val - mu, 2), 0) / (logs.length - 1);
+  if (isNaN(variance) || variance <= 0) {
+    variance = 0.2;
+  }
+  let sigma = Math.sqrt(variance);
+  
+  if (sigma < 0.15) sigma = 0.15;
+  if (sigma > 0.8) sigma = 0.8;
+
+  return { mu, sigma };
+}
 
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
@@ -269,87 +345,124 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
 }
 
 // 시뮬레이터 및 비교 계산 실행
-function loadData() {
+async function loadData() {
   if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
-  setTimeout(() => {
-    // 1. 도메인 ID에 따라 기본 지연 수준 설정
-    const selectedDomainId = currentSelectedPath[currentSelectedPath.length - 1]?.id || '1001';
-    let baseOffset = 0;
-    if (selectedDomainId === '1002') {
-      baseOffset = 30; // 1002 도메인은 기본적으로 조금 더 느림
-    }
+  const domainId = currentSelectedPath[currentSelectedPath.length - 1]?.id;
 
+  let muA, sigmaA, muB, sigmaB;
+  let realDataA = [];
+  let realDataB = [];
+  let realDataFetched = false;
+
+  if (domainId) {
+    try {
+      const startA = formatDateParam(periodADate, false);
+      const endA = formatDateParam(periodADate, true);
+      const startB = formatDateParam(periodBDate, false);
+      const endB = formatDateParam(periodBDate, true);
+
+      realDataA = await fetchMetricData(domainId, null, 'domain', startA, endA, 60, 'service_time');
+      realDataB = await fetchMetricData(domainId, null, 'domain', startB, endB, 60, 'service_time');
+
+      if (realDataA && realDataA.length > 2 && realDataB && realDataB.length > 2) {
+        realDataFetched = true;
+      }
+    } catch (err) {
+      console.warn('[Drift Analysis] Failed to fetch real response times. Falling back to simulator.', err);
+    }
+  }
+
+  let driftMs = 0;
+  if (realDataFetched) {
+    const paramsA = estimateLogNormalParams(realDataA, 160);
+    const paramsB = estimateLogNormalParams(realDataB, 200);
+    muA = paramsA.mu;
+    sigmaA = paramsA.sigma;
+    muB = paramsB.mu;
+    sigmaB = paramsB.sigma;
+    driftMs = Math.round(Math.exp(muB) - Math.exp(muA));
+  } else {
     // 2. 날짜 선택 차이에 따른 가변적인 드리프트 값 도출 (안정적인 느낌 속에서 날짜별 미세변화 연출)
     const timeDiff = Math.abs(periodBDate.getTime() - periodADate.getTime());
     const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
     
     // 날짜별로 고정된 유사 난수 시드 결정
     const seed = (dayDiff % 7) * 4.2;
-    const driftMs = Math.round(15 + seed + baseOffset); // 15ms ~ 65ms 사이의 미세 딜레이 드리프트
-    
-    // 3. 로그 노말(Log-normal) 분포 연산
-    // x축: 응답 속도 범위 (0ms ~ 1000ms, 10ms 단위)
-    const xRange = [];
-    for (let x = 10; x <= 1000; x += 10) {
-      xRange.push(x);
+    const selectedDomainId = domainId || '1001';
+    let baseOffset = 0;
+    if (selectedDomainId === '1002') {
+      baseOffset = 30; // 1002 도메인은 기본적으로 조금 더 느림
     }
+    driftMs = Math.round(15 + seed + baseOffset); // 15ms ~ 65ms 사이의 미세 딜레이 드리프트
 
-    // Period A (Baseline): Median = 160ms, Mean = 185ms
-    // Log-Normal params: mu = ln(160) = 5.07, sigma = 0.45
-    const muA = 5.07;
-    const sigmaA = 0.45;
-    const distA = xRange.map(x => logNormalPdf(x, muA, sigmaA) * 1000); // Scale up for chart visibility
+    muA = 5.07;
+    sigmaA = 0.45;
+    muB = Math.log(160 + driftMs);
+    sigmaB = 0.45;
+  }
 
-    // Period B (Comparison): Period A에서 driftMs 만큼 느리게 시프트
-    // Median = 160 + driftMs
-    const medianB = 160 + driftMs;
-    const muB = Math.log(medianB);
-    const sigmaB = 0.45;
-    const distB = xRange.map(x => logNormalPdf(x, muB, sigmaB) * 1000);
+  // 백분위 지표 계산
+  const avgA = Math.round(Math.exp(muA + (sigmaA * sigmaA) / 2));
+  const avgB = Math.round(Math.exp(muB + (sigmaB * sigmaB) / 2));
+  const avgDiffVal = avgB - avgA;
+  const avgPercent = ((avgDiffVal / avgA) * 100).toFixed(1);
 
-    // 백분위 지표 계산
-    const avgA = Math.round(Math.exp(muA + (sigmaA * sigmaA) / 2));
-    const avgB = Math.round(Math.exp(muB + (sigmaB * sigmaB) / 2));
-    const avgDiffVal = avgB - avgA;
-    const avgPercent = ((avgDiffVal / avgA) * 100).toFixed(1);
+  // P95 = exp(mu + 1.645 * sigma)
+  const p95A = Math.round(Math.exp(muA + 1.645 * sigmaA));
+  const p95B = Math.round(Math.exp(muB + 1.645 * sigmaB));
+  const p95DiffVal = p95B - p95A;
+  const p95Percent = ((p95DiffVal / p95A) * 100).toFixed(1);
 
-    // P95 = exp(mu + 1.645 * sigma)
-    const p95A = Math.round(Math.exp(muA + 1.645 * sigmaA));
-    const p95B = Math.round(Math.exp(muB + 1.645 * sigmaB));
-    const p95DiffVal = p95B - p95A;
-    const p95Percent = ((p95DiffVal / p95A) * 100).toFixed(1);
+  // Dynamic X range based on values
+  const xMax = Math.min(10000, Math.max(1000, Math.round(Math.max(p95A, p95B) * 1.5)));
+  const xRange = [];
+  const step = Math.max(5, Math.ceil(xMax / 100));
+  for (let x = step; x <= xMax; x += step) {
+    xRange.push(x);
+  }
 
-    // 4. UI 텍스트 및 배지 업데이트
-    avgDriftValue.textContent = `+${avgDiffVal} ms (+${avgPercent}%)`;
-    p95DriftValue.textContent = `+${p95DiffVal} ms (+${p95Percent}%)`;
-    shiftAmountValue.textContent = `Shift Right (+${driftMs}ms)`;
+  const scaleFactor = Math.exp(muA) * 5;
+  const distA = xRange.map(x => logNormalPdf(x, muA, sigmaA) * scaleFactor); // Scale up for chart visibility
+  const distB = xRange.map(x => logNormalPdf(x, muB, sigmaB) * scaleFactor);
 
-    let statusText = t('leak.statusHealthy');
-    let statusClass = 'stable';
-    if (avgDiffVal > 40) {
-      statusText = t('leak.statusDanger');
-      statusClass = 'danger';
-    } else if (avgDiffVal > 15) {
-      statusText = t('leak.statusWarning');
-      statusClass = 'warning';
+  // 4. UI 텍스트 및 배지 업데이트
+  avgDriftValue.textContent = `${avgDiffVal >= 0 ? '+' : ''}${avgDiffVal} ms (${avgDiffVal >= 0 ? '+' : ''}${avgPercent}%)`;
+  p95DriftValue.textContent = `${p95DiffVal >= 0 ? '+' : ''}${p95DiffVal} ms (${p95DiffVal >= 0 ? '+' : ''}${p95Percent}%)`;
+  shiftAmountValue.textContent = driftMs >= 0 ? `Shift Right (+${driftMs}ms)` : `Shift Left (${driftMs})`;
+
+  let statusText = t('leak.statusHealthy');
+  let statusClass = 'stable';
+  if (avgDiffVal > 40) {
+    statusText = t('leak.statusDanger');
+    statusClass = 'danger';
+  } else if (avgDiffVal > 15) {
+    statusText = t('leak.statusWarning');
+    statusClass = 'warning';
+  }
+  
+  // 다국어 상태값 매칭
+  if (statusClass === 'stable') statusText = getLang() === 'ko' ? '안정 (Stable)' : getLang() === 'ja' ? '安定 (Stable)' : 'Stable';
+  else if (statusClass === 'warning') statusText = getLang() === 'ko' ? '경고 (Drift)' : getLang() === 'ja' ? '警告 (Drift)' : 'Warning (Drift)';
+  else statusText = getLang() === 'ko' ? '위험 (Regression)' : getLang() === 'ja' ? '危険 (Regression)' : 'Critical (Regression)';
+
+  driftStatusValue.innerHTML = `<span class="drift-status-badge ${statusClass}">${statusText}</span>`;
+
+  // 원인 분석 트리 갱신
+  renderDriftCauses(avgDiffVal, driftMs);
+
+  // 5. 차트 그리기
+  renderDriftChart(xRange, distA, distB);
+
+  if (simulatedWarningBanner) {
+    if (realDataFetched) {
+      simulatedWarningBanner.classList.add('hidden');
+    } else {
+      simulatedWarningBanner.classList.remove('hidden');
     }
-    
-    // 다국어 상태값 매칭
-    if (statusClass === 'stable') statusText = getLang() === 'ko' ? '안정 (Stable)' : getLang() === 'ja' ? '安定 (Stable)' : 'Stable';
-    else if (statusClass === 'warning') statusText = getLang() === 'ko' ? '경고 (Drift)' : getLang() === 'ja' ? '警告 (Drift)' : 'Warning (Drift)';
-    else statusText = getLang() === 'ko' ? '위험 (Regression)' : getLang() === 'ja' ? '危険 (Regression)' : 'Critical (Regression)';
+  }
 
-    driftStatusValue.innerHTML = `<span class="drift-status-badge ${statusClass}">${statusText}</span>`;
-
-    // 원인 분석 트리 갱신
-    renderDriftCauses(avgDiffVal, driftMs);
-
-    // 5. 차트 그리기
-    renderDriftChart(xRange, distA, distB);
-
-    if (loadingOverlay) loadingOverlay.classList.add('hidden');
-  }, 400);
+  if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
 // Log-Normal PDF 공식

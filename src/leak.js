@@ -5,6 +5,7 @@ import { t, getLang } from './i18n.js';
 const PTA_CFG = window.PTA_CONFIG || {};
 const DOMAIN_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/domain';
 const INSTANCE_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/instance';
+const API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics';
 const TOKEN = PTA_CFG.TOKEN || '';
 
 // 전역 변수
@@ -18,6 +19,7 @@ let selectedInstanceId = '';
 const instanceSelect = document.getElementById('instanceSelect');
 const periodSelect = document.getElementById('periodSelect');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const simulatedWarningBanner = document.getElementById('simulatedWarningBanner');
 
 // KPI 요약 카드 DOM
 const uptimeValue = document.getElementById('uptimeValue');
@@ -51,6 +53,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadData();
   });
 });
+
+function formatDateParam(date, isEnd = false) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = isEnd ? '24' : '00';
+  return `${y}${m}${d}${h}`;
+}
+
+async function fetchMetricData(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics) {
+  if (!domainId) return [];
+
+  let endpoint;
+  if (!targetId) {
+    endpoint = `${API_BASE}/domain`;
+  } else {
+    endpoint = targetType === 'instance' ? `${API_BASE}/instance` : `${API_BASE}/business`;
+  }
+
+  const url = new URL(endpoint, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  url.searchParams.append('domain_id', domainId);
+
+  if (targetId) {
+    if (targetType === 'instance') {
+      url.searchParams.append('instance_id', targetId);
+    } else {
+      url.searchParams.append('business_id', targetId);
+    }
+  }
+  url.searchParams.append('time_pattern', 'yyyyMMddHH');
+  url.searchParams.append('start_time', startTime);
+  url.searchParams.append('end_time', endTime);
+  url.searchParams.append('interval_minute', intervalMinute);
+  url.searchParams.append('metrics', metrics);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  const data = await response.json();
+  return data.result || [];
+}
 
 // 도메인 트리 조회 및 초기 선택
 async function loadDomainTree() {
@@ -290,26 +337,91 @@ function createPopover(items, onSelect, level = 0, currentLevelPath = []) {
   return popover;
 }
 
-// 데이터 시뮬레이터 및 분석 실행
-function loadData() {
+// 데이터 로드 및 분석 실행
+async function loadData() {
   if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
-  setTimeout(() => {
-    // 1. 기간에 따른 일수 생성
-    const totalPoints = periodDays;
-    const dates = [];
-    const now = new Date();
-    for (let i = totalPoints - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      dates.push(d.toLocaleDateString(getLang() === 'ko' ? 'ko-KR' : 'ja-JP', { month: 'short', day: 'numeric' }));
-    }
+  const domainId = currentSelectedPath[currentSelectedPath.length - 1]?.id;
+  const instanceId = selectedInstanceId;
 
-    // 2. 인스턴스에 따라 힙 유출 속도(Slope) 설정
-    // 인스턴스 1: 완만한 누수, 인스턴스 2: 급격한 누수, 기타: 지극히 안전한 상태
-    let leakRate = 0.8; // 기본 MB/day
-    let initBaseline = 980; // 초기 GC 직후 힙 메모리 (MB)
-    let uptimeDays = 12; // 가동일수
+  // 기본 세팅
+  const totalPoints = periodDays;
+  const dates = [];
+  const now = new Date();
+  for (let i = totalPoints - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(now.getDate() - i);
+    dates.push(d.toLocaleDateString(getLang() === 'ko' ? 'ko-KR' : 'ja-JP', { month: 'short', day: 'numeric' }));
+  }
+
+  let realDataFetched = false;
+  let rawHeapFootprints = [];
+  let maxHeap = 4096;
+  let unit = 'MB';
+  let uptimeDays = 12;
+
+  // 1. OpenAPI 연동 시도
+  if (domainId && instanceId) {
+    const today = new Date();
+    const prior = new Date();
+    prior.setDate(today.getDate() - periodDays);
+
+    const startTimeStr = formatDateParam(prior, false);
+    const endTimeStr = formatDateParam(today, true);
+
+    try {
+      const data = await fetchMetricData(domainId, instanceId, 'instance', startTimeStr, endTimeStr, 60, 'heap_usage');
+      
+      if (data && data.length > 5) {
+        // 일별 그룹핑하여 GC 직후 최저점(Minimum) 추출
+        const dayGroups = {};
+        data.forEach(item => {
+          const dayStr = item.time.substring(0, 8); // yyyyMMdd
+          if (!dayGroups[dayStr]) dayGroups[dayStr] = [];
+          dayGroups[dayStr].push(item.value);
+        });
+
+        const sortedDays = Object.keys(dayGroups).sort();
+        const dailyMins = sortedDays.map(day => Math.min(...dayGroups[day]));
+
+        if (dailyMins.length > 5) {
+          rawHeapFootprints = dailyMins;
+          
+          // 실 데이터 날짜 축으로 교체
+          dates.length = 0;
+          sortedDays.forEach(dayStr => {
+            const y = parseInt(dayStr.substring(0, 4));
+            const m = parseInt(dayStr.substring(4, 6)) - 1;
+            const d = parseInt(dayStr.substring(6, 8));
+            const dateObj = new Date(y, m, d);
+            dates.push(dateObj.toLocaleDateString(getLang() === 'ko' ? 'ko-KR' : 'ja-JP', { month: 'short', day: 'numeric' }));
+          });
+
+          // 단위 판독 (% vs MB)
+          const maxVal = Math.max(...rawHeapFootprints);
+          if (maxVal <= 100) {
+            unit = '%';
+            maxHeap = 100;
+          } else {
+            unit = 'MB';
+            maxHeap = Math.pow(2, Math.ceil(Math.log2(maxVal))) || 4096;
+          }
+
+          uptimeDays = dailyMins.length;
+          realDataFetched = true;
+          console.log(`[Leak Auditor] Loaded ${dailyMins.length} days of real heap telemetry. Unit: ${unit}`);
+        }
+      }
+    } catch (err) {
+      console.warn('[Leak Auditor] Failed to load real heap metrics. Falling back to simulator.', err);
+    }
+  }
+
+  // 2. 가상 시뮬레이션 폴백
+  if (!realDataFetched) {
+    let leakRate = 0.8;
+    let initBaseline = 980;
+    uptimeDays = 12;
     
     if (selectedInstanceId && selectedInstanceId.endsWith('1')) {
       leakRate = 4.8;
@@ -321,82 +433,79 @@ function loadData() {
       uptimeDays = 142;
     }
 
-    const maxHeap = 4096; // WAS 최대 Heap (4GB)
-    const rawHeapFootprints = [];
-    const trendHeapLine = [];
+    unit = 'MB';
+    maxHeap = 4096;
+    rawHeapFootprints = [];
 
-    // 3. 톱니바퀴 GC 후 잔류량 시뮬레이션 데이터 생성 (선형 누수 + 일부 잡음)
     for (let i = 0; i < totalPoints; i++) {
       const progressDays = uptimeDays - (totalPoints - 1) + i;
       let postGcMin = initBaseline + (progressDays * leakRate);
-      
-      // 잡음 추가 (+/- 15MB)
       postGcMin += (Math.sin(i / 3) * 15) + (Math.cos(i / 1.5) * 5);
-      
-      // Heap Max 임계치를 못 넘게 바인딩 (실제 OOM나기 전까지 버티는 모습)
       postGcMin = Math.min(maxHeap - 50, postGcMin);
       rawHeapFootprints.push(Math.round(postGcMin));
     }
+  }
 
-    // 4. 선형 회귀 분석 실행 (Linear Regression $y = ax + b$)
-    const xValues = Array.from({ length: totalPoints }, (_, i) => i);
-    const yValues = rawHeapFootprints;
-    
-    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-    for (let i = 0; i < totalPoints; i++) {
-      sumX += xValues[i];
-      sumY += yValues[i];
-      sumXY += xValues[i] * yValues[i];
-      sumXX += xValues[i] * xValues[i];
+  if (simulatedWarningBanner) {
+    if (realDataFetched) {
+      simulatedWarningBanner.classList.add('hidden');
+    } else {
+      simulatedWarningBanner.classList.remove('hidden');
     }
-    const n = totalPoints;
-    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    const intercept = (sumY - slope * sumX) / n;
+  }
 
-    // 회귀 추세선 포인트 대입
-    for (let i = 0; i < totalPoints; i++) {
-      trendHeapLine.push(Math.round(slope * i + intercept));
-    }
+  // 3. 선형 회귀 분석
+  const n = rawHeapFootprints.length;
+  const xValues = Array.from({ length: n }, (_, i) => i);
+  const yValues = rawHeapFootprints;
+  
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += xValues[i];
+    sumY += yValues[i];
+    sumXY += xValues[i] * yValues[i];
+    sumXX += xValues[i] * xValues[i];
+  }
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
 
-    // 5. OOM 수명 예측 계산
-    const currentBaseline = rawHeapFootprints[rawHeapFootprints.length - 1];
-    const remainingMemory = maxHeap - currentBaseline;
-    let daysToOom = Math.round(remainingMemory / slope);
-    
-    // 기울기가 거의 0이거나 음수인 경우
-    if (slope <= 0.05) {
-      daysToOom = Infinity;
-    }
+  const trendHeapLine = [];
+  for (let i = 0; i < n; i++) {
+    trendHeapLine.push(Math.round(slope * i + intercept));
+  }
 
-    // 6. 상태 배지 결정
-    let statusText = t('leak.statusHealthy');
-    let statusClass = 'healthy';
-    if (daysToOom < 30) {
-      statusText = t('leak.statusDanger');
-      statusClass = 'danger';
-    } else if (daysToOom < 100) {
-      statusText = t('leak.statusWarning');
-      statusClass = 'warning';
-    }
+  const currentBaseline = rawHeapFootprints[rawHeapFootprints.length - 1];
+  const remainingMemory = maxHeap - currentBaseline;
+  let daysToOom = Math.round(remainingMemory / slope);
+  
+  if (slope <= 0.05) {
+    daysToOom = Infinity;
+  }
 
-    // 7. UI 업데이트
-    uptimeValue.textContent = `${uptimeDays} Days`;
-    slopeValue.textContent = `${slope.toFixed(2)} MB/Day`;
-    daysToOomValue.textContent = isFinite(daysToOom) ? `${daysToOom} Days` : '∞ (Stable)';
-    
-    restartStatusValue.innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+  // 4. 상태 및 추천 목록 갱신
+  let statusText = t('leak.statusHealthy');
+  let statusClass = 'healthy';
+  if (daysToOom < 30) {
+    statusText = t('leak.statusDanger');
+    statusClass = 'danger';
+  } else if (daysToOom < 100) {
+    statusText = t('leak.statusWarning');
+    statusClass = 'warning';
+  }
 
-    // 추천 액션 리포트 업데이트
-    updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBaseline);
+  uptimeValue.textContent = `${uptimeDays} Days`;
+  slopeValue.textContent = `${slope.toFixed(2)} ${unit}/Day`;
+  daysToOomValue.textContent = isFinite(daysToOom) ? `${daysToOom} Days` : '∞ (Stable)';
+  
+  restartStatusValue.innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
 
-    // 8. 차트 렌더링
-    renderChart(dates, rawHeapFootprints, trendHeapLine, maxHeap);
+  updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBaseline, unit);
+  renderChart(dates, rawHeapFootprints, trendHeapLine, maxHeap, unit);
 
-    if (loadingOverlay) loadingOverlay.classList.add('hidden');
-  }, 500);
+  if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
-function updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBaseline) {
+function updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBaseline, unit) {
   recommendationList.innerHTML = '';
   
   const recommendations = [];
@@ -404,41 +513,41 @@ function updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBa
 
   if (statusClass === 'danger') {
     if (currentLang === 'ko') {
-      recommendations.push(`<strong>CRITICAL</strong>: 힙 사용량이 Max Limit(${maxHeap}MB)의 ${((currentBaseline/maxHeap)*100).toFixed(0)}%에 도달했습니다. 예상 OOM 시점이 ${daysToOom}일 이내로 다가왔습니다.`);
+      recommendations.push(`<strong>CRITICAL</strong>: 힙 사용량이 최대 임계치(${maxHeap}${unit})의 ${((currentBaseline/maxHeap)*100).toFixed(0)}%에 도달했습니다. 예상 OOM 시점이 ${daysToOom}일 이내로 임박했습니다.`);
       recommendations.push(`<strong>즉시 조치</strong>: 이번 주말 야간 점검 시 해당 인스턴스의 Graceful Restart(정기 재기동)를 수행하십시오.`);
       recommendations.push(`<strong>상세 진단 필요</strong>: GC 로그 파일 분석을 수행하여 Memory Leak(예: 누적된 Map 객체, 제거되지 않은 스레드 로컬) 코드가 배포되었는지 확인하십시오.`);
     } else if (currentLang === 'ja') {
-      recommendations.push(`<strong>CRITICAL</strong>: ヒープ使用量が最大制限値(${maxHeap}MB)の ${((currentBaseline/maxHeap)*100).toFixed(0)}%に達しています。予測OOMまで残り ${daysToOom}日です。`);
+      recommendations.push(`<strong>CRITICAL</strong>: ヒープ使用量が最大制限値(${maxHeap}${unit})の ${((currentBaseline/maxHeap)*100).toFixed(0)}%に達しています。予測OOMまで残り ${daysToOom}日です。`);
       recommendations.push(`<strong>即時推奨</strong>: 今週末の夜間メンテナンス時に当該インスタンスのGraceful Restartを実行してください。`);
       recommendations.push(`<strong>詳細分析</strong>: メモリリーク（解放されていないMap、ThreadLocal等）コードの混入がないか、ヒープダンプおよびGCログを確認してください。`);
     } else {
-      recommendations.push(`<strong>CRITICAL</strong>: Heap footprint reached ${((currentBaseline/maxHeap)*100).toFixed(0)}% of Max Limit(${maxHeap}MB). Forecasted OOM within ${daysToOom} days.`);
+      recommendations.push(`<strong>CRITICAL</strong>: Heap footprint reached ${((currentBaseline/maxHeap)*100).toFixed(0)}% of Max Limit(${maxHeap}${unit}). Forecasted OOM within ${daysToOom} days.`);
       recommendations.push(`<strong>Immediate Action</strong>: Schedule a Graceful Restart of this instance during the upcoming weekend maintenance window.`);
       recommendations.push(`<strong>Root Cause Audit</strong>: Trigger heap dumps and analyze GC log files for memory leaks (e.g., unremoved ThreadLocals, static caches).`);
     }
   } else if (statusClass === 'warning') {
     if (currentLang === 'ko') {
-      recommendations.push(`<strong>WARNING</strong>: 미세한 메모리 누수(${slope.toFixed(2)} MB/Day)가 관측됩니다. OOM 예상 한계점까지 약 ${daysToOom}일의 여유가 있습니다.`);
+      recommendations.push(`<strong>WARNING</strong>: 미세한 메모리 누수(${slope.toFixed(2)} ${unit}/Day)가 관측됩니다. OOM 예상 한계점까지 약 ${daysToOom}일의 여유가 있습니다.`);
       recommendations.push(`<strong>예방 수칙</strong>: 30일 이내에 시스템 정기 배포가 없다면, 정기 재기동 정책(예: 60일 주기 자동 재기동)을 스케줄링하십시오.`);
       recommendations.push(`<strong>모니터링 강화</strong>: 임계 영역 힙 증가 추세를 매주 확인하십시오.`);
     } else if (currentLang === 'ja') {
-      recommendations.push(`<strong>WARNING</strong>: 微小なメモリリーク(${slope.toFixed(2)} MB/Day)が観測されています。OOM予測限界点まであと約 ${daysToOom}日です。`);
+      recommendations.push(`<strong>WARNING</strong>: 微小なメモリリーク(${slope.toFixed(2)} ${unit}/Day)が観測されています。OOM予測限界点まであと約 ${daysToOom}日です。`);
       recommendations.push(`<strong>予防保守</strong>: 今後30日以内にシステムデプロイ予定がない場合は、定期再起動スケジュール（例：60日周期自動再起動）を設定してください。`);
       recommendations.push(`<strong>監視強化</strong>: ヒープの毎週の増加傾向をトラッキングしてください。`);
     } else {
-      recommendations.push(`<strong>WARNING</strong>: Micro memory leak detected (${slope.toFixed(2)} MB/Day). Residual time before OOM is approximately ${daysToOom} days.`);
+      recommendations.push(`<strong>WARNING</strong>: Micro memory leak detected (${slope.toFixed(2)} ${unit}/Day). Residual time before OOM is approximately ${daysToOom} days.`);
       recommendations.push(`<strong>Prevention Rule</strong>: If no release deployment is scheduled within 30 days, set up a rolling restart schedule (e.g., 60-day auto-restart).`);
       recommendations.push(`<strong>Enhanced Monitor</strong>: Watch weekly heap trends in the monitoring dashboard.`);
     }
   } else {
     if (currentLang === 'ko') {
-      recommendations.push(`<strong>HEALTHY</strong>: 메모리 누수 경향이 관측되지 않거나 지극히 정상 범위(${slope.toFixed(2)} MB/Day) 내에 있습니다.`);
+      recommendations.push(`<strong>HEALTHY</strong>: 메모리 누수 경향이 관측되지 않거나 지극히 정상 범위(${slope.toFixed(2)} ${unit}/Day) 내에 있습니다.`);
       recommendations.push(`현재 시스템은 매우 안정적이며, 100일 이상 무정지 기동 시에도 OOM 위험성이 없습니다. 추가적인 예방적 재기동 조치는 불필요합니다.`);
     } else if (currentLang === 'ja') {
-      recommendations.push(`<strong>HEALTHY</strong>: メモリリーク傾向は検出されないか、正常な範囲内(${slope.toFixed(2)} MB/Day)です。`);
+      recommendations.push(`<strong>HEALTHY</strong>: メモリリーク傾向は検出されないか、正常な範囲内(${slope.toFixed(2)} ${unit}/Day)です。`);
       recommendations.push(`システムは非常に安定しており、100日以上の連続運転においてもOOMの危険性はありません。追加の予防再起動は不要です。`);
     } else {
-      recommendations.push(`<strong>HEALTHY</strong>: No memory leak trend detected. Slope is within normal bounds (${slope.toFixed(2)} MB/Day).`);
+      recommendations.push(`<strong>HEALTHY</strong>: No memory leak trend detected. Slope is within normal bounds (${slope.toFixed(2)} ${unit}/Day).`);
       recommendations.push(`The system is highly stabilized. Uptime of 100+ days presents no memory contention. Proactive restart is not required.`);
     }
   }
@@ -450,7 +559,7 @@ function updateRecommendations(statusClass, daysToOom, slope, maxHeap, currentBa
   });
 }
 
-function renderChart(dates, rawData, trendData, maxHeap) {
+function renderChart(dates, rawData, trendData, maxHeap, unit) {
   const ctx = document.getElementById('heapLeakChart').getContext('2d');
   
   if (heapChartInstance) {
@@ -502,7 +611,7 @@ function renderChart(dates, rawData, trendData, maxHeap) {
         tooltip: {
           callbacks: {
             label: (context) => {
-              return ` ${context.dataset.label}: ${context.raw} MB`;
+              return ` ${context.dataset.label}: ${context.raw} ${unit}`;
             }
           }
         }
@@ -514,11 +623,11 @@ function renderChart(dates, rawData, trendData, maxHeap) {
         y: {
           title: {
             display: true,
-            text: 'Memory (MB)',
+            text: `Memory (${unit})`,
             font: { weight: 'bold' }
           },
           min: 0,
-          max: maxHeap + 200,
+          max: maxHeap + (unit === '%' ? 10 : 200),
           grid: {
             color: '#e2e8f0'
           }

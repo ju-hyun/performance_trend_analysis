@@ -601,6 +601,12 @@ const DICT = {
   'drift.chartTitle': { ja: '応答時間確率密度(Log-Normal)分布比較', ko: '응답시간 확률밀도(Log-Normal) 분포 비교', en: 'Response Time Probability Density (Log-Normal) Comparison' },
   'drift.causeTitle': { ja: '性能ドリフト根本原因分析', ko: '성능 드리프트 근본 원인 분석', en: 'Performance Drift Root Cause Analysis' },
 
+  'data.simulatedWarning': {
+    ja: '⚠️ 十分な履歴データがAPIから取得できなかったため、統計シミュレーションデータを使用しています。',
+    ko: '⚠️ API로부터 충분한 이력 데이터를 조회할 수 없어 통계 시뮬레이션 데이터를 표시하고 있습니다.',
+    en: '⚠️ Showing simulated dataset because insufficient real telemetry was returned by the API.'
+  },
+
   'help.footer': {
     ja: '© 2026 JenniferSoft, Inc. All rights reserved.',
     ko: '© 2026 JenniferSoft, Inc. All rights reserved.',

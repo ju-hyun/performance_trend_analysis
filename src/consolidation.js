@@ -4,6 +4,8 @@ import { t, getLang } from './i18n.js';
 // 설정 정보 로드
 const PTA_CFG = window.PTA_CONFIG || {};
 const DOMAIN_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/domain';
+const INSTANCE_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/instance';
+const API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics';
 const TOKEN = PTA_CFG.TOKEN || '';
 
 // 전역 변수
@@ -11,6 +13,7 @@ let chartBeforeInstance = null;
 let chartAfterInstance = null;
 let domainTree = [];
 let currentSelectedPath = [];
+let realDataFetched = false;
 
 // Mock Servers and their 24h CPU profiles (complementary workloads)
 const MOCK_SERVERS = [
@@ -55,6 +58,8 @@ const MOCK_SERVERS = [
   }
 ];
 
+let activeServers = JSON.parse(JSON.stringify(MOCK_SERVERS));
+
 // Selected servers state
 let selectedServerIds = ['srv_ap1', 'srv_batch']; // Default select two complementary servers
 
@@ -64,6 +69,7 @@ const savingsValue = document.getElementById('savingsValue');
 const contentionValue = document.getElementById('contentionValue');
 const peakCpuValue = document.getElementById('peakCpuValue');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const simulatedWarningBanner = document.getElementById('simulatedWarningBanner');
 
 // Chart.js 폰트 스타일 설정
 Chart.defaults.font.family = '"Pretendard JP Variable", "Pretendard JP", sans-serif';
@@ -73,10 +79,171 @@ Chart.defaults.color = "#64748b";
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. 도메인 트리 로드
   await loadDomainTree();
-
-  // 2. 서버 리스트 체크박스 그리드 생성
-  renderServerList();
 });
+
+function formatDateParam(date, isEnd = false) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = isEnd ? '24' : '00';
+  return `${y}${m}${d}${h}`;
+}
+
+async function fetchMetricData(domainId, targetId, targetType, startTime, endTime, intervalMinute, metrics) {
+  if (!domainId) return [];
+
+  let endpoint;
+  if (!targetId) {
+    endpoint = `${API_BASE}/domain`;
+  } else {
+    endpoint = targetType === 'instance' ? `${API_BASE}/instance` : `${API_BASE}/business`;
+  }
+
+  const url = new URL(endpoint, window.location.origin);
+  url.searchParams.append('token', TOKEN);
+  url.searchParams.append('domain_id', domainId);
+
+  if (targetId) {
+    if (targetType === 'instance') {
+      url.searchParams.append('instance_id', targetId);
+    } else {
+      url.searchParams.append('business_id', targetId);
+    }
+  }
+  url.searchParams.append('time_pattern', 'yyyyMMddHH');
+  url.searchParams.append('start_time', startTime);
+  url.searchParams.append('end_time', endTime);
+  url.searchParams.append('interval_minute', intervalMinute);
+  url.searchParams.append('metrics', metrics);
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  const data = await response.json();
+  return data.result || [];
+}
+
+async function loadInstancesAndMetrics(domainId) {
+  if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+  
+  try {
+    const url = `${INSTANCE_API_BASE}?token=${TOKEN}&domain_id=${domainId}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Instance API load failed');
+    const data = await response.json();
+    const instances = data.result || [];
+    instances.sort((a, b) => a.instanceId - b.instanceId);
+
+    if (instances.length === 0) {
+      throw new Error('No instances found for this domain');
+    }
+
+    // Query 24h CPU for each instance
+    const today = new Date();
+    const prior = new Date();
+    prior.setDate(today.getDate() - 1);
+    const startTimeStr = formatDateParam(prior, false);
+    const endTimeStr = formatDateParam(today, true);
+
+    const colors = ['#3b82f6', '#8b5cf6', '#eab308', '#10b981', '#f97316', '#ec4899', '#06b6d4', '#f43f5e'];
+
+    let anyRealInstanceData = false;
+    const fetchPromises = instances.map(async (ins, index) => {
+      try {
+        const cpuData = await fetchMetricData(domainId, ins.instanceId, 'instance', startTimeStr, endTimeStr, 60, 'sys_cpu');
+        
+        let profile = [];
+        if (cpuData && cpuData.length > 5) {
+          cpuData.sort((a, b) => a.time.localeCompare(b.time));
+          const last24 = cpuData.slice(-24);
+          profile = last24.map(item => Math.round(item.value));
+          anyRealInstanceData = true;
+        }
+
+        if (profile.length < 12) {
+          profile = generateRealisticCpuProfile(ins.instanceId, index);
+        }
+
+        while (profile.length < 24) {
+          profile.push(Math.round(10 + Math.random() * 20));
+        }
+        if (profile.length > 24) {
+          profile = profile.slice(0, 24);
+        }
+
+        return {
+          id: String(ins.instanceId),
+          name: ins.name,
+          cost: ins.name.toLowerCase().includes('db') || ins.name.toLowerCase().includes('batch') ? 3600 : 2400,
+          cpuProfile: profile,
+          color: colors[index % colors.length]
+        };
+      } catch (err) {
+        console.warn(`Failed to fetch CPU for instance ${ins.instanceId}, generating simulated profile.`, err);
+        return {
+          id: String(ins.instanceId),
+          name: ins.name,
+          cost: 2400,
+          cpuProfile: generateRealisticCpuProfile(ins.instanceId, index),
+          color: colors[index % colors.length]
+        };
+      }
+    });
+
+    activeServers = await Promise.all(fetchPromises);
+    realDataFetched = anyRealInstanceData;
+  } catch (error) {
+    console.warn('Falling back to default MOCK_SERVERS due to error:', error);
+    activeServers = JSON.parse(JSON.stringify(MOCK_SERVERS));
+    realDataFetched = false;
+  }
+
+  if (activeServers.length > 0) {
+    selectedServerIds = activeServers.slice(0, 2).map(s => s.id);
+  } else {
+    selectedServerIds = [];
+  }
+
+  if (simulatedWarningBanner) {
+    if (realDataFetched) {
+      simulatedWarningBanner.classList.add('hidden');
+    } else {
+      simulatedWarningBanner.classList.remove('hidden');
+    }
+  }
+
+  renderServerList();
+  loadData();
+}
+
+function generateRealisticCpuProfile(id, index) {
+  const profile = [];
+  const type = index % 3; 
+  for (let h = 0; h < 24; h++) {
+    let base = 10;
+    if (type === 0) {
+      if (h >= 9 && h <= 18) {
+        base = 35 + Math.sin((h - 9) / 9 * Math.PI) * 20;
+      } else {
+        base = 12 + Math.sin(h / 24 * Math.PI * 2) * 5;
+      }
+    } else if (type === 1) {
+      if (h >= 1 && h <= 6) {
+        base = 60 + Math.sin((h - 1) / 5 * Math.PI) * 25;
+      } else {
+        base = 8 + Math.cos(h / 24 * Math.PI * 2) * 4;
+      }
+    } else {
+      base = 15 + Math.sin(h / 6) * 5 + Math.cos(h / 3) * 3;
+    }
+    base += Math.random() * 6 - 3;
+    profile.push(Math.max(2, Math.min(98, Math.round(base))));
+  }
+  return profile;
+}
 
 // 도메인 트리 조회 및 초기 선택
 async function loadDomainTree() {
@@ -126,12 +293,15 @@ function findFirstDomain(nodes, path = []) {
 function updateSelectedPath(path) {
   currentSelectedPath = path;
   renderHierarchicalSelector();
-  loadData();
+  const lastItem = path[path.length - 1];
+  if (lastItem && lastItem.type === 'domain') {
+    loadInstancesAndMetrics(lastItem.id);
+  }
 }
 
 function renderServerList() {
   serverListContainer.innerHTML = '';
-  MOCK_SERVERS.forEach(srv => {
+  activeServers.forEach(srv => {
     const label = document.createElement('label');
     label.className = `server-checkbox-label ${selectedServerIds.includes(srv.id) ? 'selected' : ''}`;
     
@@ -315,7 +485,7 @@ function loadData() {
     const hours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
 
     // 1. 선택된 서버 목록 필터링
-    const selectedServers = MOCK_SERVERS.filter(srv => selectedServerIds.includes(srv.id));
+    const selectedServers = activeServers.filter(srv => selectedServerIds.includes(srv.id));
 
     // 2. 통합 전 개별 차트용 데이터셋 구성
     const beforeDatasets = selectedServers.map(srv => ({
