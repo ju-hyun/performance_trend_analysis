@@ -1918,8 +1918,23 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     overallYThresholds[metric] = { median: medianY, max: maxY };
   }
 
-  // 3. Setup SVG Canvas
-  const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+  // 3. Prepare Labels and Dynamic Margins
+  const formatNum = (num) => {
+    if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
+    // If it's not an integer, show 2 decimal places. Otherwise show as is.
+    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
+  };
+
+  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
+  const yLabelText = formatNum(medianY) + unit;
+  const xLabelText = formatNum(medianX) + ' Hits';
+
+  // Dynamic left margin calculation to prevent text clipping regardless of value length
+  const estimatedYLabelWidth = Math.ceil(yLabelText.length * 8.5) + 25;
+  const marginLeft = Math.max(75, estimatedYLabelWidth);
+
+  // Setup SVG Canvas with adjusted margins
+  const margin = { top: 20, right: 25, bottom: 40, left: marginLeft };
   const containerWidth = container.clientWidth || 500;
   const containerHeight = Math.max(container.clientHeight, 350) || 350;
 
@@ -1930,6 +1945,7 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     .append("svg")
     .attr("width", containerWidth)
     .attr("height", containerHeight)
+    .style("overflow", "visible")
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -2031,29 +2047,22 @@ function renderOverallHeatmap(data, isHitSelected, metric) {
     });
 
   // 8. Minimalist Labels (Only Medians)
-  const formatNum = (num) => {
-    if (num >= 1000) return (num / 1000).toFixed(1).replace('.0', '') + 'k';
-    // If it's not an integer, show 2 decimal places. Otherwise show as is.
-    return Number.isInteger(num) ? num.toString() : num.toFixed(2);
-  };
-
   // X-Axis Median Label (Hits)
   svg.append("text")
     .attr("x", width / 2)
     .attr("y", height + 25)
     .attr("class", "quadrant-label")
     .attr("text-anchor", "middle")
-    .text(formatNum(medianX) + ' Hits');
+    .text(xLabelText);
 
   // Y-Axis Median Label (Value)
-  const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
   svg.append("text")
     .attr("x", -10)
     .attr("y", height / 2)
     .attr("class", "quadrant-label")
     .attr("text-anchor", "end")
     .attr("alignment-baseline", "middle")
-    .text(formatNum(medianY) + unit);
+    .text(yLabelText);
 
   // Update Footer Label (External to SVG)
   const labelY = document.getElementById('overallHeatmapLabelY');
@@ -2349,29 +2358,45 @@ function mockDataOnFailPartial() {
   renderOverallHeatmap(heatmapMockData);
 }
 
+// Helper function to close all detail slide-in layers
+function closeAllDetailLayers() {
+  const overallLayer = document.getElementById('overallDetailLayer');
+  if (overallLayer && overallLayer.classList.contains('open')) {
+    overallLayer.classList.remove('open');
+
+    // Remove hexagon highlight when layer is closed
+    if (window.d3) {
+      d3.selectAll('.hexagon-group path.selected-hex')
+        .classed('selected-hex', false)
+        .attr('stroke', 'white')
+        .attr('stroke-width', '0.5');
+    }
+  }
+
+  const dayHourLayer = document.getElementById('dayHourDetailLayer');
+  if (dayHourLayer && dayHourLayer.classList.contains('open')) {
+    dayHourLayer.classList.remove('open');
+  }
+}
+
 // Setup Slide-in Layer Logic
 document.addEventListener('DOMContentLoaded', () => {
   const closeBtn = document.getElementById('closeDetailLayer');
   if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      document.getElementById('overallDetailLayer').classList.remove('open');
-
-      // Remove hexagon highlight when layer is closed
-      if (window.d3) {
-        d3.selectAll('.hexagon-group path.selected-hex')
-          .classed('selected-hex', false)
-          .attr('stroke', 'white')
-          .attr('stroke-width', '0.5');
-      }
-    });
+    closeBtn.addEventListener('click', closeAllDetailLayers);
   }
 
   const closeDayHourBtn = document.getElementById('closeDayHourLayer');
   if (closeDayHourBtn) {
-    closeDayHourBtn.addEventListener('click', () => {
-      document.getElementById('dayHourDetailLayer').classList.remove('open');
-    });
+    closeDayHourBtn.addEventListener('click', closeAllDetailLayers);
   }
+
+  // Close detail layers when ESC key is pressed
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      closeAllDetailLayers();
+    }
+  });
 });
 
 window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {

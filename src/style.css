@@ -781,11 +781,16 @@ body {
   stroke-dasharray: 4, 4;
 }
 
+.heatmap-container svg {
+  overflow: visible;
+}
+
 .quadrant-label {
   font-size: 0.7rem;
   fill: var(--text-secondary);
   font-weight: 500;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  white-space: nowrap;
 }
 
 /* Tooltip */
