@@ -74,7 +74,7 @@ body {
 .domain-filter-group {
   padding-left: 0.5rem;
   min-width: unset;
-  flex: 0 0 auto;
+  flex: 1;
 }
 
 .instance-filter-group {
@@ -1046,10 +1046,6 @@ body {
   color: #2563eb;
 }
 
-.domain-filter-group {
-  flex: 1;
-}
-
 /* Overall Heatmap Detail Slide-in Layer */
 .overall-detail-layer {
   position: fixed;
@@ -1121,6 +1117,7 @@ body {
   width: 100%;
 }
 
+/* Bar grows left-to-right: 2025.05.01  ---    3231ms */
 .value-bar-container {
   flex: 1;
   height: 8px;
@@ -1129,13 +1126,6 @@ body {
   border-radius: 2px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  /* right-aligned to grow towards the left? No, user example shows left aligned: --- 3231ms */
-}
-
-/* User's example: 2025.05.01  ---    3231ms */
-/* The bar comes before the text, and grows from left to right. */
-.value-bar-container {
   justify-content: flex-start;
 }
 

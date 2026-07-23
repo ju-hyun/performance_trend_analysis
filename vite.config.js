@@ -1,6 +1,9 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+    // DEV_API_TOKEN은 .env(gitignore 대상)에서 로드. 클라이언트 번들에는 절대 포함되지 않음.
+    const env = loadEnv(mode, process.cwd(), '');
+
     return {
         base: './', // 빌드 시 상대 경로 사용
         server: {
@@ -12,8 +15,17 @@ export default defineConfig(() => {
                     target: 'https://13.158.36.15:8443/',
                     changeOrigin: true,
                     secure: false,
-                    onProxyRes: (proxyRes) => {
-                        proxyRes.headers['Cross-Origin-Resource-Policy'] = 'cross-origin';
+                    configure: (proxy) => {
+                        // 운영 nginx의 토큰 주입(set $args)과 동일한 역할: 클라이언트는 토큰을 모르고,
+                        // 개발 서버 프록시가 업스트림으로 전달하기 직전에 토큰을 붙여준다.
+                        proxy.on('proxyReq', (proxyReq) => {
+                            if (!env.DEV_API_TOKEN) return;
+                            const sep = proxyReq.path.includes('?') ? '&' : '?';
+                            proxyReq.path += `${sep}token=${env.DEV_API_TOKEN}`;
+                        });
+                        proxy.on('proxyRes', (proxyRes) => {
+                            proxyRes.headers['Cross-Origin-Resource-Policy'] = 'cross-origin';
+                        });
                     }
                 }
             },

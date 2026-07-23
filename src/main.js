@@ -9,7 +9,8 @@ const BUSINESS_METRICS_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/dbmetrics/b
 const DOMAIN_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/domain';
 const INSTANCE_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/instance';
 const BUSINESS_API_BASE = (PTA_CFG.API_DOMAIN || '') + '/api/business';
-const TOKEN = PTA_CFG.TOKEN || '';
+// API 인증 토큰은 클라이언트에 두지 않는다. nginx(운영)/Vite 프록시(로컬)가 요청을
+// 업스트림으로 전달할 때 서버 측에서 주입한다.
 
 const MONTH_COLORS = [
   '#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#34d399',
@@ -92,7 +93,6 @@ Chart.defaults.plugins.tooltip.cornerRadius = 4;
 document.addEventListener('DOMContentLoaded', async () => {
   // Validate configuration
   const missingVars = [];
-  if (!TOKEN) missingVars.push('TOKEN');
   if (!PTA_CFG.BASE_URL) missingVars.push('BASE_URL');
 
   if (missingVars.length > 0) {
@@ -290,7 +290,6 @@ let currentSelectedPath = []; // Array of { id: string, name: string, type: 'gro
 
 async function loadDomains() {
   const url = new URL(DOMAIN_API_BASE, window.location.origin);
-  url.searchParams.append('token', TOKEN);
   const urlString = url.toString();
 
   try {
@@ -300,7 +299,7 @@ async function loadDomains() {
     });
 
     if (response.status === 401) {
-      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      showConfigError('Authentication failed. Please contact the site administrator to check the server-side API token.', 'Unauthorized (401)');
       return false;
     }
 
@@ -555,7 +554,6 @@ async function loadInstances(domainId) {
   }
 
   const url = new URL(INSTANCE_API_BASE, window.location.origin);
-  url.searchParams.append('token', TOKEN);
   url.searchParams.append('domain_id', domainId);
   const urlString = url.toString();
 
@@ -566,7 +564,7 @@ async function loadInstances(domainId) {
     });
 
     if (response.status === 401) {
-      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      showConfigError('Authentication failed. Please contact the site administrator to check the server-side API token.', 'Unauthorized (401)');
       return;
     }
 
@@ -595,7 +593,7 @@ async function loadInstances(domainId) {
       { instanceId: '2', name: `Instance-${domainId}-2` }
     ];
 
-    instanceSelect.innerHTML = '<option value="">인스턴스 전체</option>';
+    instanceSelect.innerHTML = '<option value="">全体インスタンス</option>';
     mockInstances.forEach(instance => {
       const option = document.createElement('option');
       option.value = instance.instanceId;
@@ -612,7 +610,6 @@ async function fetchBusinesses(domainId) {
   if (!domainId) return;
 
   const url = new URL(BUSINESS_API_BASE, window.location.origin);
-  url.searchParams.append('token', TOKEN);
   url.searchParams.append('domain_id', domainId);
 
   try {
@@ -675,8 +672,16 @@ async function loadData() {
     const today = new Date();
 
     // Main Chart & Summary Metrics: 1년을 12개의 단위로 (월별 분할) 조회 - 최대 31일 제한 우회 및 일별 데이터(1440분) 지정
-    const metricsToFetch = Array.from(new Set([currentMetric, 'service_time', 'service_rate', 'concurrent_user', 'service_count', 'service_err_count', 'sys_cpu', 'heap_usage', 'max_sys_cpu']))
-      .filter(m => m !== 'err_rate');
+    // sys_cpu/heap_usage/max_sys_cpu are instance-only metrics; skip fetching them for business targets
+    const isInstanceTarget = targetType === 'instance';
+    const instanceOnlyMetrics = ['sys_cpu', 'heap_usage', 'max_sys_cpu'];
+    if (!isInstanceTarget) {
+      instanceOnlyMetrics.forEach(m => { if (m !== currentMetric) yearlyData[m] = []; });
+    }
+    const metricsToFetch = Array.from(new Set([
+      currentMetric, 'service_time', 'service_rate', 'concurrent_user', 'service_count', 'service_err_count',
+      ...(isInstanceTarget ? instanceOnlyMetrics : [])
+    ])).filter(m => m !== 'err_rate');
     const fetchPromisesMap = {};
     metricsToFetch.forEach(m => fetchPromisesMap[m] = []);
 
@@ -742,18 +747,10 @@ async function loadData() {
       mainChartInstance = instance;
     });
 
-    // Reset selection state and update text on full load
+    // Reset selection state; handleChartSelectionChanged() below refreshes the range
+    // display, summary cards, and heatmaps for the full 1-year view in one pass.
     selectedStartMonth = null;
     selectedEndMonth = null;
-    const rangeDisplay = document.getElementById('selectedRangeDisplay');
-    if (rangeDisplay) rangeDisplay.textContent = '全体 (1年)';
-
-    // Update Summary Cards
-    const curData = yearlyData[currentMetric] || [];
-    updateSummaryCardsPartial(0, curData.length - 1);
-
-    // Heatmaps Data Fetching
-    // We can rely on the selection changed handler to load heatmaps for the default 1-year view
     await handleChartSelectionChanged();
 
   } catch (error) {
@@ -780,7 +777,6 @@ async function fetchMetricData(domainId, targetId, targetType, startTime, endTim
   const url = new URL(endpoint, window.location.origin);
 
   // Construct params
-  url.searchParams.append('token', TOKEN);
   url.searchParams.append('domain_id', domainId);
 
   if (targetId) {
@@ -805,7 +801,7 @@ async function fetchMetricData(domainId, targetId, targetType, startTime, endTim
     });
 
     if (response.status === 401) {
-      showConfigError('Invalid or expired TOKEN. Please check your VITE_API_TOKEN setting.', 'Unauthorized (401)');
+      showConfigError('Authentication failed. Please contact the site administrator to check the server-side API token.', 'Unauthorized (401)');
       return [];
     }
 
@@ -892,6 +888,11 @@ const monthBoundaryPlugin = {
     ctx.beginPath();
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)'; // lighter line color
+    ctx.setLineDash([4, 4]);
+    boundaries.forEach(lineX => {
+      ctx.moveTo(lineX, chartArea.top);
+      ctx.lineTo(lineX, chartArea.bottom);
+    });
     ctx.stroke();
     ctx.restore();
   },
@@ -1461,12 +1462,6 @@ async function handleChartSelectionChanged() {
       const startStr = currentMetricData[0].time;
       const endStr = currentMetricData[currentMetricData.length - 1].time;
 
-      const formatYMDLocal = (str) => {
-        const y = str.substring(0, 4);
-        const m = str.substring(4, 6);
-        const d = str.substring(6, 8);
-        return `${y}.${m}.${d}`;
-      };
       rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
 
       const sYear = parseInt(startStr.substring(0, 4), 10);
@@ -1525,12 +1520,6 @@ async function handleChartSelectionChanged() {
     const startStr = currentMetricData[startIdx].time.substring(0, 8); // yyyymmdd
     const endStr = currentMetricData[endIdx].time.substring(0, 8);
 
-    const formatYMDLocal = (str) => {
-      const y = str.substring(0, 4);
-      const m = str.substring(4, 6);
-      const d = str.substring(6, 8);
-      return `${y}.${m}.${d}`;
-    };
     rangeDisplay.innerHTML = `${formatYMDLocal(startStr)} <span style="color: var(--text-secondary); margin: 0 4px; font-weight: 500;">-</span> ${formatYMDLocal(endStr)}`;
 
     // 2. Filter data for Summary Cards
@@ -1647,7 +1636,7 @@ function renderDayHourHeatmap(data, isHitSelected, metric) {
   if (!container) return;
 
   if (!data || data.length === 0) {
-    container.innerHTML = '<div class="heatmap-placeholder">데이터가 없습니다.</div>';
+    container.innerHTML = '<div class="heatmap-placeholder">有効なデータがありません。</div>';
     return;
   }
 
@@ -2293,6 +2282,13 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+function formatYMDLocal(str) {
+  const y = str.substring(0, 4);
+  const m = str.substring(4, 6);
+  const d = str.substring(6, 8);
+  return `${y}.${m}.${d}`;
+}
+
 function parseDateString(dateStr, full = false) {
   if (!dateStr || dateStr.length < 8) return dateStr;
   const y = dateStr.substring(0, 4);
@@ -2348,14 +2344,16 @@ function mockDataOnFailPartial() {
       String(d.getMonth() + 1).padStart(2, '0') +
       String(d.getDate()).padStart(2, '0') +
       String(d.getHours()).padStart(2, '0') + "00";
+    const value = 50 + Math.random() * 400;
     heatmapMockData.push({
       time: timeStr,
-      responseTime: 50 + Math.random() * 400,
+      value: value,
+      yValue: value,
       count: Math.floor(Math.random() * 1000)
     });
   }
-  renderDayHourHeatmap(heatmapMockData);
-  renderOverallHeatmap(heatmapMockData);
+  renderDayHourHeatmap(heatmapMockData, false, currentMetric);
+  renderOverallHeatmap(heatmapMockData, false, currentMetric);
 }
 
 // Helper function to close all detail slide-in layers
@@ -2406,7 +2404,7 @@ window.showOverallListLayer = function (dataPoints, metric, isHitSelected) {
   if (!layer || !tbody || !metricHeader) return;
 
   const unit = isHitSelected ? 'ms' : getMetricUnit(metric);
-  const metricDisplayName = isHitSelected ? '응답시간' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
+  const metricDisplayName = isHitSelected ? '応答時間' : (document.querySelector(`.metric-btn[data-metric="${metric}"]`)?.textContent || metric);
   metricHeader.textContent = `${metricDisplayName}(${unit})`;
 
   // Sort data points by time ascending
