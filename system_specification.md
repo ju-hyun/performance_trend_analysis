@@ -60,9 +60,10 @@
 - **Mock 데이터**: API 호출 실패 시 시드 기반의 랜덤 데이터를 생성하여 시스템의 가용성 보장.
 
 ### 3.2 런타임 설정 (Runtime Configuration)
-- **설정 파일**: `public/pta/config.js` (`window.PTA_CONFIG` 전역 객체)
-- **빌드 독립적**: 빌드 후에도 `dist/pta/config.js`를 직접 수정하여 API 서버 주소 및 토큰 변경 가능.
-- **참조 경로**: `src/config.js`에서 `window.PTA_CONFIG` 값을 읽어 `config.BASE_URL`, `config.API_DOMAIN`, `config.TOKEN`으로 제공.
+- **설정 파일**: `public/pta/config.js` (`window.PTA_CONFIG` 전역 객체, `BASE_URL`/`API_DOMAIN`만 포함)
+- **빌드 독립적**: 빌드 후에도 `dist/pta/config.js`를 직접 수정하여 API 서버 주소 변경 가능.
+- **참조 경로**: `src/main.js`가 `window.PTA_CONFIG`를 직접 읽어 `PTA_CFG.BASE_URL`, `PTA_CFG.API_DOMAIN`으로 사용 (별도 설정 모듈 파일 없음).
+- **API 인증 토큰**: 클라이언트에는 존재하지 않음. `/api/` 요청이 업스트림으로 전달되는 시점에 리버스 프록시(운영: nginx, 로컬: Vite dev 서버)가 서버 측에서 주입 (§5.2 참고).
 
 ### 3.3 주요 메트릭 (Metrics)
 | 메트릭 명         | API 키         | 단위  | 비고                                                         |
@@ -71,7 +72,7 @@
 | TPS             | `service_rate` | TPS   | 처리량 지표                                                    |
 | Hit数 (Hit수)    | `service_count` | Hits  | 호출 건수                                                    |
 | 同時ユーザ数 (동시사용자) | `concurrent_user` | 人    | 세션 지표                                             |
-| エラー率 (에러율)  | `error_rate`   | %     | `service_err_count / service_count × 100` 산출               |
+| エラー率 (에러율)  | `err_rate`     | %     | `service_err_count / service_count × 100` 산출 (프론트엔드 자체 계산) |
 | システムCPU      | `sys_cpu` / `max_sys_cpu` | %     | 인스턴스 전용                                        |
 | ヒープメモリ使用率 | `heap_usage` | %     | 인스턴스 전용                                            |
 
@@ -130,7 +131,9 @@
 ### 5.2 개발 서버 프록시
 - Vite 개발 서버(포트 `5177`)에서 `/api` 경로 요청을 `BASE_URL`로 프록시.
 - `secure: false` 설정으로 자가서명 인증서 환경 지원.
-- CORS 관련 헤더(`Cross-Origin-Resource-Policy` 등) 자동 주입.
+- `configure` 훅에서 `proxy.on('proxyReq', ...)`을 통해, 업스트림으로 요청이 전달되기 직전에 `.env`의 `DEV_API_TOKEN` 값을 `token` 쿼리파라미터로 주입 (클라이언트 코드는 토큰을 모름).
+- 같은 훅에서 `proxy.on('proxyRes', ...)`으로 CORS 관련 헤더(`Cross-Origin-Resource-Policy` 등) 주입.
+- 운영 환경(nginx)에서는 `set $args "${args}&token=<token>";`로 동일한 역할을 수행 (`DEPLOY_GUIDE_NGINX.md` 참고).
 
 ---
 

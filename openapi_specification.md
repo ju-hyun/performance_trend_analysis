@@ -1,8 +1,14 @@
 # JENNIFER OpenAPI 연동 명세서
 
-성능 트렌드 분석 시스템([system_specification.md](file:///Users/novalove/Works/git/performance-trend-analysis/system_specification.md))에서 데이터를 수집하기 위해 연동한 JENNIFER OpenAPI의 종류, 파라미터, 호출 방법 및 관련 세부 로직을 정리한 명세입니다.
+성능 트렌드 분석 시스템([system_specification.md](./system_specification.md))에서 데이터를 수집하기 위해 연동한 JENNIFER OpenAPI의 종류, 파라미터, 호출 방법 및 관련 세부 로직을 정리한 명세입니다.
 
-실제 호출부 코드는 [main.js](file:///Users/novalove/Works/git/performance-trend-analysis/src/main.js)에 구현되어 있습니다.
+실제 호출부 코드는 [main.js](./src/main.js)에 구현되어 있습니다.
+
+> **인증 방식 변경 안내**: 아래 각 API는 JENNIFER OpenAPI 자체의 요구사항으로 `token` 쿼리파라미터를 필요로 합니다.
+> 다만 본 시스템의 **프론트엔드 코드는 더 이상 `token`을 직접 전송하지 않습니다.** `/api/` 요청이 리버스 프록시를 거쳐
+> 업스트림(JENNIFER 서버)으로 전달되는 시점에, 운영 환경은 nginx가, 로컬 개발 환경은 Vite dev 서버 프록시가
+> 서버 측에서 토큰을 주입합니다. 자세한 내용은 [system_specification.md §3.2, §5.2](./system_specification.md)와
+> [DEPLOY_GUIDE_NGINX.md](./DEPLOY_GUIDE_NGINX.md)를 참고하세요.
 
 ---
 
@@ -10,10 +16,10 @@
 
 | API 구분 | 엔드포인트 (Endpoint) | HTTP Method | 주요 용도 | 관련 소스 코드 |
 | :--- | :--- | :---: | :--- | :--- |
-| **도메인 목록 조회** | `/api/domain` | `GET` | 모니터링 대상 도메인 트리 구성 | [main.js: L291-300](file:///Users/novalove/Works/git/performance-trend-analysis/src/main.js#L291-L300) |
-| **인스턴스 목록 조회** | `/api/instance` | `GET` | 선택된 도메인의 에이전트 인스턴스 목록 조회 | [main.js: L551-566](file:///Users/novalove/Works/git/performance-trend-analysis/src/main.js#L551-L566) |
-| **비즈니스 목록 조회** | `/api/business` | `GET` | 선택된 도메인의 업무(서비스 그룹) 목록 조회 | [main.js: L611-622](file:///Users/novalove/Works/git/performance-trend-analysis/src/main.js#L611-L622) |
-| **성능 메트릭 조회** | `/api/dbmetrics/{target}` | `GET` | 도메인/인스턴스/비즈니스별 시계열 데이터 조회 | [main.js: L767-805](file:///Users/novalove/Works/git/performance-trend-analysis/src/main.js#L767-L805) |
+| **도메인 목록 조회** | `/api/domain` | `GET` | 모니터링 대상 도메인 트리 구성 | [main.js: L291-299](https://github.com/ju-hyun/performance_trend_analysis/blob/main/src/main.js#L291-L299) |
+| **인스턴스 목록 조회** | `/api/instance` | `GET` | 선택된 도메인의 에이전트 인스턴스 목록 조회 | [main.js: L550-564](https://github.com/ju-hyun/performance_trend_analysis/blob/main/src/main.js#L550-L564) |
+| **비즈니스 목록 조회** | `/api/business` | `GET` | 선택된 도메인의 업무(서비스 그룹) 목록 조회 | [main.js: L609-619](https://github.com/ju-hyun/performance_trend_analysis/blob/main/src/main.js#L609-L619) |
+| **성능 메트릭 조회** | `/api/dbmetrics/{target}` | `GET` | 도메인/인스턴스/비즈니스별 시계열 데이터 조회 | [main.js: L764-801](https://github.com/ju-hyun/performance_trend_analysis/blob/main/src/main.js#L764-L801) |
 
 ---
 
@@ -21,38 +27,38 @@
 
 ### 2.1. 도메인 목록 조회 API (`/api/domain`)
 * **설명**: 프로젝트에 등록된 최상위 도메인 및 그룹 구조를 트리 형태로 조회하여 셀렉터 UI를 구성합니다.
-* **호출 방법**:
+* **호출 방법** (리버스 프록시가 업스트림으로 전달하는 최종 요청 형태):
   ```http
   GET /api/domain?token={TOKEN} HTTP/1.1
   Accept: application/json
   ```
 * **요청 파라미터**:
-  * `token` *(String, 필수)*: JENNIFER OpenAPI 인증용 보안 토큰
+  * `token` *(String, 필수)*: JENNIFER OpenAPI 인증용 보안 토큰. 브라우저는 이 값을 보내지 않으며, 리버스 프록시가 주입한다.
 
 ---
 
 ### 2.2. 인스턴스 목록 조회 API (`/api/instance`)
 * **설명**: 선택된 도메인에 속한 개별 애플리케이션 서버(인스턴스) 목록을 조회합니다.
-* **호출 방법**:
+* **호출 방법** (리버스 프록시가 업스트림으로 전달하는 최종 요청 형태):
   ```http
   GET /api/instance?token={TOKEN}&domain_id={domainId} HTTP/1.1
   Accept: application/json
   ```
 * **요청 파라미터**:
-  * `token` *(String, 필수)*: 인증 토큰
+  * `token` *(String, 필수)*: 인증 토큰. 리버스 프록시가 주입 (브라우저는 전송하지 않음)
   * `domain_id` *(Integer, 필수)*: 대상 도메인 ID
 
 ---
 
 ### 2.3. 비즈니스(업무) 목록 조회 API (`/api/business`)
 * **설명**: 선택된 도메인에 정의된 비즈니스 트랜잭션 그룹 목록을 계층 구조로 조회합니다.
-* **호출 방법**:
+* **호출 방법** (리버스 프록시가 업스트림으로 전달하는 최종 요청 형태):
   ```http
   GET /api/business?token={TOKEN}&domain_id={domainId} HTTP/1.1
   Accept: application/json
   ```
 * **요청 파라미터**:
-  * `token` *(String, 필수)*: 인증 토큰
+  * `token` *(String, 필수)*: 인증 토큰. 리버스 프록시가 주입 (브라우저는 전송하지 않음)
   * `domain_id` *(Integer, 필수)*: 대상 도메인 ID
 
 ---
@@ -63,7 +69,7 @@
   * 도메인 전체 대상 조회 시: `/api/dbmetrics/domain`
   * 인스턴스 개별 조회 시: `/api/dbmetrics/instance`
   * 비즈니스 개별 조회 시: `/api/dbmetrics/business`
-* **호출 방법**:
+* **호출 방법** (리버스 프록시가 업스트림으로 전달하는 최종 요청 형태):
   ```http
   GET /api/dbmetrics/{target}?token={TOKEN}&domain_id={domainId}&... HTTP/1.1
   Accept: application/json
@@ -72,7 +78,7 @@
 
 | 파라미터명 | 타입 | 필수 여부 | 설명 및 예시 |
 | :--- | :---: | :---: | :--- |
-| `token` | String | 필수 | OpenAPI 인증용 보안 토큰 |
+| `token` | String | 필수 | OpenAPI 인증용 보안 토큰. 리버스 프록시가 주입 (브라우저는 전송하지 않음) |
 | `domain_id` | Integer | 필수 | 모니터링 대상 도메인 ID |
 | `instance_id` | Integer | 조건부 필수 | `{target}`이 `instance`일 때 필수 지정 |
 | `business_id` | Integer | 조건부 필수 | `{target}`이 `business`일 때 필수 지정 |
